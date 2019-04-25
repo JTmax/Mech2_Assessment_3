@@ -71,15 +71,15 @@ void Motor(int SetSpeedL, int SetSpeedR, int DirectionL, int DirectionR)
     }
     
     //Right Motor
-    if(DirectionR == CCW)
-    {
-        digitalWrite(INA1,HIGH);
-        digitalWrite(INA2,LOW);
-    }
-    else
+    if(DirectionR == CC)
     {
         digitalWrite(INA1,LOW);
         digitalWrite(INA2,HIGH);
+    }
+    else
+    {
+        digitalWrite(INA1,HIGH);
+        digitalWrite(INA2,LOW);
     }
     
     analogWrite(PWMA, OutputL);
