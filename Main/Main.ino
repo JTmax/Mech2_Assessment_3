@@ -21,7 +21,7 @@ PID RightPID(&InputR, &OutputR, &SetpointR, KpR, KiR, KdR, DIRECT);
 struct MotorData
 {
     int DirectionL, DirectionR, SetSpeedL , SetSpeedR;
-    float CurSpeedL, CurSpeedR;
+    float CurSpeedL, CurSpeedR, FilteredL =0;
 };
 
 struct EncoderData 
@@ -33,7 +33,7 @@ struct MotorData MD;
 struct EncoderData EncData;
 
 
-int MotorSpeedLoopTime = 100; //In micro seconds
+int MotorSpeedLoopTime = 10; //In micro seconds
 long LastSpeedLoop = 0;
 
 int ScreenRefreshTime = 100; //In mili seconds
@@ -45,6 +45,14 @@ void IR() //For Hope
 
 }
 
+float Filter(float prevSpeed, float CurrentSpeed)
+{
+    int filter = 1000;
+
+    float FilteredVal = (prevSpeed + (CurrentSpeed * filter)) / (filter + 1);
+
+    return(FilteredVal);
+}
 void Motor(int SetSpeedL, int SetSpeedR, int DirectionL, int DirectionR)
 {
     SetpointL = SetSpeedL;
@@ -80,16 +88,18 @@ void Motor(int SetSpeedL, int SetSpeedR, int DirectionL, int DirectionR)
 
 void Encoder()
 {
-    if((micros()-LastSpeedLoop) >= MotorSpeedLoopTime)
+    if((millis()-LastSpeedLoop) >= MotorSpeedLoopTime)
     {
         EncData.NewLPos = myEncLeft.read();
         EncData.NewRPos = myEncRight.read();
 
         EncData.DeltaL = EncData.NewLPos - EncData.OldLPos;
-        EncData.DeltaR = EncData.DeltaR - EncData.OldRPos;
+        EncData.DeltaR = EncData.NewRPos - EncData.OldRPos;
 
-        MD.CurSpeedL = 60000000/((1156.68/EncData.DeltaL)*(MotorSpeedLoopTime));
-        MD.CurSpeedR = 60000000/((1156.68/EncData.DeltaR)*(MotorSpeedLoopTime));
+        MD.CurSpeedL = 60000/((1156.68/EncData.DeltaL)*(MotorSpeedLoopTime));
+        MD.CurSpeedR = 60000/((1156.68/EncData.DeltaR)*(MotorSpeedLoopTime));
+
+        MD.FilteredL = Filter(MD.FilteredL, MD.CurSpeedL);
 
         InputL = MD.CurSpeedL; //PID Input speed
         InputR = MD.CurSpeedR; //PID Input speed 
@@ -97,7 +107,7 @@ void Encoder()
         EncData.OldLPos = EncData.NewLPos;
         EncData.OldRPos = EncData.NewRPos;
 
-        LastSpeedLoop = micros();
+        LastSpeedLoop = millis();
     }
 
 }
@@ -138,24 +148,24 @@ void Mode(int mode)
     {
         //Constant Speed Mode
         case 1:
-            ConstantSpeed();
+            //ConstantSpeed();
             break;
         //Fusion mode
         case 2:
 
-            FusionMode();
+            //FusionMode();
             break;
         default:
             break;
     }
 
     //Print Data to screen 
-    if((micros()-LastScreenLoop) >= ScreenRefreshTime)
+    if((millis()-LastScreenLoop) >= ScreenRefreshTime)
     {
         lcd.clear();
-        lcd.print("SL:"+(String)MD.CurSpeedL);
+        lcd.print("SL:"+(String)MD.FilteredL);
         
-        lcd.setCursor(10,0);
+        lcd.setCursor(0,1 );
         lcd.print("SD:"+(String)MD.CurSpeedR);
 
         LastScreenLoop = millis();
@@ -166,6 +176,9 @@ void Mode(int mode)
 
 void setup()
 {
+    lcd.init();
+    lcd.backlight();
+
     LeftPID.SetMode(AUTOMATIC);
     LeftPID.SetSampleTime(1);
 

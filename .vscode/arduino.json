@@ -1,4 +1,5 @@
 {
-    "board": "arduino:avr:yun",
-    "sketch": "Main/Main.ino"
+    "board": "arduino:avr:uno",
+    "sketch": "Main/Main.ino",
+    "port": "/dev/cu.usbmodem141201"
 }
