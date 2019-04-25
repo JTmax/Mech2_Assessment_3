@@ -20,4 +20,6 @@
 #define ENCRA 10
 #define ENCRB 11
 
+//IR sensor Pins
+
 #endif
