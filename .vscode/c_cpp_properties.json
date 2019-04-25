@@ -4,11 +4,12 @@
             "name": "Mac",
             "includePath": [
                 "/Applications/Arduino.app/Contents/Java/tools/**",
-                "/Applications/Arduino.app/Contents/Java/hardware/arduino/avr/**",
-                "/Users/jasontravis/Documents/GitHub/Mech2_Assessment_3/**"
+                "/Applications/Arduino.app/Contents/Java/hardware/arduino/avr/**"
+                
             ],
             "forcedInclude": [
-                "/Applications/Arduino.app/Contents/Java/hardware/arduino/avr/cores/arduino/Arduino.h"
+                "/Applications/Arduino.app/Contents/Java/hardware/arduino/avr/cores/arduino/Arduino.h",
+                "/Users/jasontravis/Documents/GitHub/Mech2_Assessment_3/Main/Main.h"
             ],
             "macFrameworkPath": [
                 "/System/Library/Frameworks",

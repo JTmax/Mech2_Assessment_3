@@ -1,4 +1,4 @@
 {
     "board": "arduino:avr:yun",
-    "sketch": "Main.ino"
+    "sketch": "Main/Main.ino"
 }
