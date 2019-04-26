@@ -1,5 +1,6 @@
 
 #ifndef Main_h
+
 #define Main_h
 
 //Motor directions
@@ -8,11 +9,11 @@
 
 //Motor Driver Pins
 #define INA1 6
-#define INA2 5
+#define INA2 10
 #define PWMA 8
 #define INB1 6
-#define INB2 5
-#define PWMB 5
+#define INB2 7
+#define PWMB 12
 
 //Encoder Pins
 #define ENCRA 3

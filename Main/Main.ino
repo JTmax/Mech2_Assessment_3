@@ -6,14 +6,16 @@
 
 LiquidCrystal_I2C lcd(0x27,20,4);
 
+int testing = 1;
+
 Encoder myEncLeft(ENCLA, ENCLB);
 Encoder myEncRight(ENCRA, ENCRB);
 
 double SetpointL, InputL, OutputL;
-double KpL=5, KiL=2.5, KdL=0.001;
+double KpL=10.5, KiL=18, KdL=10.5;
 
 double SetpointR, InputR, OutputR;
-double KpR=5, KiR=2.5, KdR=0.001;
+double KpR=10, KiR=2.5, KdR=0.001;
 
 PID LeftPID(&InputL, &OutputL, &SetpointL, KpL, KiL, KdL, DIRECT);
 PID RightPID(&InputR, &OutputR, &SetpointR, KpR, KiR, KdR, DIRECT);
@@ -21,7 +23,7 @@ PID RightPID(&InputR, &OutputR, &SetpointR, KpR, KiR, KdR, DIRECT);
 struct MotorData
 {
     int DirectionL, DirectionR, SetSpeedL , SetSpeedR;
-    float CurSpeedL, CurSpeedR, FilteredL =0;
+    int CurSpeedL, CurSpeedR, FilteredL =0;
 };
 
 struct EncoderData 
@@ -32,11 +34,10 @@ struct EncoderData
 struct MotorData MD;
 struct EncoderData EncData;
 
-
 int MotorSpeedLoopTime = 10; //In micro seconds
 long LastSpeedLoop = 0;
 
-int ScreenRefreshTime = 100; //In mili seconds
+int ScreenRefreshTime = 300; //In mili seconds
 long LastScreenLoop =0;
 
 void IR() //For Hope
@@ -47,7 +48,7 @@ void IR() //For Hope
 
 float Filter(float prevSpeed, float CurrentSpeed)
 {
-    int filter = 1000;
+    int filter = 5000;
 
     float FilteredVal = (prevSpeed + (CurrentSpeed * filter)) / (filter + 1);
 
@@ -58,32 +59,37 @@ void Motor(int SetSpeedL, int SetSpeedR, int DirectionL, int DirectionR)
     SetpointL = SetSpeedL;
     SetpointR = SetSpeedR;
 
-    //Left Motor
-    if(DirectionL == CC)
-    {
-        digitalWrite(INA1,HIGH);
-        digitalWrite(INA2,LOW);
-    }
-    else
-    {
-        digitalWrite(INA1,LOW);
-        digitalWrite(INA2,HIGH);
-    }
+    // //Left Motor
+    // if(DirectionL == CC)
+    // {
+    //     digitalWrite(INA1,HIGH);
+    //     digitalWrite(INA2,LOW);
+    // }
+    // else
+    // {
+    //     digitalWrite(INA1,LOW);
+    //     digitalWrite(INA2,HIGH);
+    // }
     
-    //Right Motor
-    if(DirectionR == CC)
-    {
-        digitalWrite(INA1,LOW);
-        digitalWrite(INA2,HIGH);
-    }
-    else
-    {
-        digitalWrite(INA1,HIGH);
-        digitalWrite(INA2,LOW);
-    }
+    // //Right Motor
+    // if(DirectionR == CC)
+    // {
+    //     digitalWrite(INA1,LOW);
+    //     digitalWrite(INA2,HIGH);
+    // }
+    // else
+    // {
+    //     digitalWrite(INA1,HIGH);
+    //     digitalWrite(INA2,LOW);
+    // }
     
-    analogWrite(PWMA, OutputL);
-    analogWrite(PWMB, OutputR);
+    // analogWrite(PWMA, OutputL);
+    // analogWrite(PWMB, OutputR);
+
+    if(testing == 1)
+    {
+        analogWrite(6, OutputL);
+    }
 }
 
 void Encoder()
@@ -101,8 +107,10 @@ void Encoder()
 
         MD.FilteredL = Filter(MD.FilteredL, MD.CurSpeedL);
 
-        InputL = MD.CurSpeedL; //PID Input speed
+        //InputL = MD.CurSpeedL; //PID Input speed
         InputR = MD.CurSpeedR; //PID Input speed 
+
+        InputL = MD.FilteredL;
 
         EncData.OldLPos = EncData.NewLPos;
         EncData.OldRPos = EncData.NewRPos;
@@ -138,7 +146,7 @@ void GloveData()
     MD.DirectionL = CC;
     MD.DirectionR = CC;
 
-    MD.SetSpeedL = 150;
+    MD.SetSpeedL = 40;
     MD.SetSpeedR = 150;
 }
 
@@ -148,7 +156,7 @@ void Mode(int mode)
     {
         //Constant Speed Mode
         case 1:
-            //ConstantSpeed();
+            ConstantSpeed();
             break;
         //Fusion mode
         case 2:
@@ -163,10 +171,10 @@ void Mode(int mode)
     if((millis()-LastScreenLoop) >= ScreenRefreshTime)
     {
         lcd.clear();
-        lcd.print("SL:"+(String)MD.FilteredL);
+        lcd.print("SL:"+(String)MD.FilteredL + " RPM");
         
         lcd.setCursor(0,1 );
-        lcd.print("SD:"+(String)MD.CurSpeedR);
+        lcd.print("SD:"+(String)MD.CurSpeedR + " RPM");
 
         LastScreenLoop = millis();
     }
@@ -198,6 +206,8 @@ void setup()
     pinMode(ENCLB,INPUT);
     pinMode(ENCRA,INPUT);
     pinMode(ENCRB,INPUT);
+
+    pinMode(6,OUTPUT);
 }
 
 void loop()
