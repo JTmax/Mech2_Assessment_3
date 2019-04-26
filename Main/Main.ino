@@ -12,10 +12,10 @@ Encoder myEncLeft(ENCLA, ENCLB);
 Encoder myEncRight(ENCRA, ENCRB);
 
 double SetpointL, InputL, OutputL;
-double KpL=10.5, KiL=18, KdL=10.5;
+double KpL=10.5, KiL=15, KdL=10;
 
 double SetpointR, InputR, OutputR;
-double KpR=10, KiR=2.5, KdR=0.001;
+double KpR=10.5, KiR=15, KdR=10;
 
 PID LeftPID(&InputL, &OutputL, &SetpointL, KpL, KiL, KdL, DIRECT);
 PID RightPID(&InputR, &OutputR, &SetpointR, KpR, KiR, KdR, DIRECT);
@@ -107,10 +107,10 @@ void Encoder()
 
         MD.FilteredL = Filter(MD.FilteredL, MD.CurSpeedL);
 
-        //InputL = MD.CurSpeedL; //PID Input speed
+        InputL = MD.CurSpeedL; //PID Input speed
         InputR = MD.CurSpeedR; //PID Input speed 
 
-        InputL = MD.FilteredL;
+        //InputL = MD.FilteredL;
 
         EncData.OldLPos = EncData.NewLPos;
         EncData.OldRPos = EncData.NewRPos;
@@ -146,7 +146,7 @@ void GloveData()
     MD.DirectionL = CC;
     MD.DirectionR = CC;
 
-    MD.SetSpeedL = 40;
+    MD.SetSpeedL = 46;
     MD.SetSpeedR = 150;
 }
 
