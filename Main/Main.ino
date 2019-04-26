@@ -102,8 +102,8 @@ void Encoder()
         EncData.DeltaL = EncData.NewLPos - EncData.OldLPos;
         EncData.DeltaR = EncData.NewRPos - EncData.OldRPos;
 
-        MD.CurSpeedL = 60000/((1156.68/EncData.DeltaL)*(MotorSpeedLoopTime));
-        MD.CurSpeedR = 60000/((1156.68/EncData.DeltaR)*(MotorSpeedLoopTime));
+        MD.CurSpeedL = abs(60000/((1156.68/EncData.DeltaL)*(MotorSpeedLoopTime)));
+        MD.CurSpeedR = abs(60000/((1156.68/EncData.DeltaR)*(MotorSpeedLoopTime)));
 
         MD.FilteredL = Filter(MD.FilteredL, MD.CurSpeedL);
 
@@ -146,7 +146,7 @@ void GloveData()
     MD.DirectionL = CC;
     MD.DirectionR = CC;
 
-    MD.SetSpeedL = 46;
+    MD.SetSpeedL = 59;
     MD.SetSpeedR = 150;
 }
 
