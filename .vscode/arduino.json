@@ -1,5 +1,6 @@
 {
-    "board": "arduino:avr:uno",
+    "board": "arduino:avr:pro",
     "sketch": "Main/Main.ino",
-    "port": "/dev/cu.usbmodem141201"
+    "port": "/dev/cu.usbmodem141201",
+    "configuration": "cpu=16MHzatmega328"
 }

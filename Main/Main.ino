@@ -31,6 +31,12 @@ struct EncoderData
     long OldLPos =0, OldRPos =0, NewLPos =0, NewRPos=0, DeltaL=0, DeltaR=0;
 };
 
+struct SixDofData 
+{
+    int pitch, yaw, roll, accel_x, accel_y, accel_z;
+};
+
+struct SixDofData gSense;
 struct MotorData MD;
 struct EncoderData EncData;
 
@@ -54,6 +60,7 @@ float Filter(float prevSpeed, float CurrentSpeed)
 
     return(FilteredVal);
 }
+
 void Motor(int SetSpeedL, int SetSpeedR, int DirectionL, int DirectionR)
 {
     SetpointL = SetSpeedL;
@@ -99,18 +106,16 @@ void Encoder()
         EncData.NewLPos = myEncLeft.read();
         EncData.NewRPos = myEncRight.read();
 
-        EncData.DeltaL = EncData.NewLPos - EncData.OldLPos;
+        EncData.DeltaL = EncData.NewLPos - EncData.OldLPos; //Gets new encoder postion 
         EncData.DeltaR = EncData.NewRPos - EncData.OldRPos;
 
-        MD.CurSpeedL = abs(60000/((1156.68/EncData.DeltaL)*(MotorSpeedLoopTime)));
-        MD.CurSpeedR = abs(60000/((1156.68/EncData.DeltaR)*(MotorSpeedLoopTime)));
+        MD.CurSpeedL = abs(60000/((1156.68/EncData.DeltaL)*(MotorSpeedLoopTime))); //Calcualtes current motor speed
+        MD.CurSpeedR = abs(60000/((1156.68/EncData.DeltaR)*(MotorSpeedLoopTime))); 
 
-        MD.FilteredL = Filter(MD.FilteredL, MD.CurSpeedL);
+        //MD.FilteredL = Filter(MD.FilteredL, MD.CurSpeedL);
 
         InputL = MD.CurSpeedL; //PID Input speed
         InputR = MD.CurSpeedR; //PID Input speed 
-
-        //InputL = MD.FilteredL;
 
         EncData.OldLPos = EncData.NewLPos;
         EncData.OldRPos = EncData.NewRPos;
@@ -122,10 +127,21 @@ void Encoder()
 
 void Coms() //For Yashwin
 {
+    //Parse serial data from bluetooth module 
+
+
+
+
+
+    //Set struct data
+    gSense.pitch= 0;
+    gSense.yaw =0;
+    gSense.roll =0;
+    gSense.accel_x =0;
+    gSense.accel_y =0;
+    gSense.accel_z =0;
 
 }
-
-
 
 void ConstantSpeed()
 {
@@ -143,11 +159,27 @@ void GloveData()
 {
     //Logic to determine speed and direction of motors 
 
-    MD.DirectionL = CC;
-    MD.DirectionR = CC;
+    if(gSense.pitch >= 0 && gSense.pitch <= 180 )
+    {
+        MD.SetSpeedL = map(gSense.pitch, 0,180,10,200); //map angle 0-180 to speed 10 - 200 RPM;
+        MD.SetSpeedR = map(gSense.pitch, 0,180,10,200);
 
-    MD.SetSpeedL = 59;
-    MD.SetSpeedR = 150;
+        MD.DirectionL = CCW;
+        MD.DirectionR = CCW;
+    }
+    else if(gSense.pitch >= 200 && gSense.pitch >=320)
+    {
+        MD.SetSpeedL = map(gSense.pitch, 200,320,10,200); //map angle 0-180 to speed 10 - 200 RPM;
+        MD.SetSpeedR = map(gSense.pitch, 200,320,10,200);
+
+        MD.DirectionL = CC;
+        MD.DirectionR = CC;
+    }
+
+    //MD.DirectionL = CC;
+    //MD.DirectionR = CC;
+    //MD.SetSpeedL = 59;
+    //MD.SetSpeedR = 150;
 }
 
 void Mode(int mode)
