@@ -8,14 +8,14 @@ LiquidCrystal_I2C lcd(0x27,20,4);
 
 int testing = 1;
 
-Encoder myEncLeft(ENCLA, ENCLB);
+Encoder myEncLeft(ENCLA,ENCLB);
 Encoder myEncRight(ENCRA, ENCRB);
 
 double SetpointL, InputL, OutputL;
-double KpL=10.5, KiL=15, KdL=10;
+double KpL=21, KiL=20, KdL=1;
 
 double SetpointR, InputR, OutputR;
-double KpR=10.5, KiR=15, KdR=10;
+double KpR=21, KiR=20, KdR=1;
 
 PID LeftPID(&InputL, &OutputL, &SetpointL, KpL, KiL, KdL, DIRECT);
 PID RightPID(&InputR, &OutputR, &SetpointR, KpR, KiR, KdR, DIRECT);
@@ -43,7 +43,7 @@ struct EncoderData EncData;
 int MotorSpeedLoopTime = 10; //In micro seconds
 long LastSpeedLoop = 0;
 
-int ScreenRefreshTime = 300; //In mili seconds
+int ScreenRefreshTime = 100; //In mili seconds
 long LastScreenLoop =0;
 
 void IR() //For Hope
@@ -96,6 +96,7 @@ void Motor(int SetSpeedL, int SetSpeedR, int DirectionL, int DirectionR)
     if(testing == 1)
     {
         analogWrite(6, OutputL);
+        analogWrite(7, OutputR);
     }
 }
 
@@ -176,10 +177,10 @@ void GloveData()
         MD.DirectionR = CC;
     }
 
-    //MD.DirectionL = CC;
-    //MD.DirectionR = CC;
-    //MD.SetSpeedL = 59;
-    //MD.SetSpeedR = 150;
+    MD.DirectionL = CC;
+    MD.DirectionR = CC;
+    MD.SetSpeedL =  20;
+    MD.SetSpeedR = 20;
 }
 
 void Mode(int mode)
@@ -203,7 +204,7 @@ void Mode(int mode)
     if((millis()-LastScreenLoop) >= ScreenRefreshTime)
     {
         lcd.clear();
-        lcd.print("SL:"+(String)MD.FilteredL + " RPM");
+        lcd.print("SL:"+(String)MD.CurSpeedL + " RPM");
         
         lcd.setCursor(0,1 );
         lcd.print("SD:"+(String)MD.CurSpeedR + " RPM");
@@ -216,6 +217,8 @@ void Mode(int mode)
 
 void setup()
 {
+    Serial.begin(9600);
+    //analogWriteFrequency(8, 375000);
     lcd.init();
     lcd.backlight();
 
@@ -234,20 +237,32 @@ void setup()
     pinMode(PWMB,OUTPUT);
     
     //Encoder Pins modes 
-    pinMode(ENCLA,INPUT);
-    pinMode(ENCLB,INPUT);
-    pinMode(ENCRA,INPUT);
-    pinMode(ENCRB,INPUT);
+    // pinMode(ENCLA,INPUT);
+    // pinMode(ENCLB,INPUT);
+    // pinMode(ENCRA,INPUT);
+    // pinMode(ENCRB,INPUT);
 
-    pinMode(6,OUTPUT);
+    //pinMode(8,OUTPUT);
+    //pinMode(7,OUTPUT);
 }
 
+long lastmillis =0;
 void loop()
 {   
     LeftPID.Compute();
     RightPID.Compute();
 
     Encoder(); //Get current motor speed
+
+    if((millis() - lastmillis) >= 10)
+    {
+    Serial.print((String)MD.CurSpeedL + " ");
+    Serial.println((String)MD.CurSpeedR + " ");
+    //Serial.println((String)OutputL);
+
+    lastmillis = millis();
+    }
+
 
     Coms(); //Get data from bluetooth
     

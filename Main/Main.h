@@ -16,10 +16,10 @@
 #define PWMB 12
 
 //Encoder Pins
-#define ENCRA 3
-#define ENCRB 5
-#define ENCLA 2
-#define ENCLB 4
+#define ENCRA 23
+#define ENCRB 22
+#define ENCLA 21
+#define ENCLB 20
 
 //IR sensor Pins
 
