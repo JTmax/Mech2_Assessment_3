@@ -7,14 +7,16 @@ LiquidCrystal_I2C lcd(0x27,20,4);
 
 int testing = 1;
 
+IntervalTimer motorTimer;
+
 Encoder myEncLeft(ENCLA,ENCLB);
 Encoder myEncRight(ENCRA, ENCRB);
 
 double SetpointL, InputL, OutputL;
-double KpL=21, KiL=20, KdL=1;
+double KpL=4, KiL=9, KdL=0;
 
 double SetpointR, InputR, OutputR;
-double KpR=21, KiR=20, KdR=1;
+double KpR=4, KiR=9, KdR=0;
 
 PID LeftPID(&InputL, &OutputL, &SetpointL, KpL, KiL, KdL, DIRECT);
 PID RightPID(&InputR, &OutputR, &SetpointR, KpR, KiR, KdR, DIRECT);
@@ -65,44 +67,39 @@ void Motor(int SetSpeedL, int SetSpeedR, int DirectionL, int DirectionR)
     SetpointL = SetSpeedL;
     SetpointR = SetSpeedR;
 
-    // //Left Motor
-    // if(DirectionL == CC)
-    // {
-    //     digitalWrite(INA1,HIGH);
-    //     digitalWrite(INA2,LOW);
-    // }
-    // else
-    // {
-    //     digitalWrite(INA1,LOW);
-    //     digitalWrite(INA2,HIGH);
-    // }
-    
-    // //Right Motor
-    // if(DirectionR == CC)
-    // {
-    //     digitalWrite(INA1,LOW);
-    //     digitalWrite(INA2,HIGH);
-    // }
-    // else
-    // {
-    //     digitalWrite(INA1,HIGH);
-    //     digitalWrite(INA2,LOW);
-    // }
-    
-    // analogWrite(PWMA, OutputL);
-    // analogWrite(PWMB, OutputR);
-
-    if(testing == 1)
+    //Left Motor
+    if(DirectionL == CC)
     {
-        analogWrite(6, OutputL);
-        analogWrite(7, OutputR);
+        digitalWrite(INA1,HIGH);
+        digitalWrite(INA2,LOW);
     }
+    else
+    {
+        digitalWrite(INA1,LOW);
+        digitalWrite(INA2,HIGH);
+    }
+    
+    //Right Motor
+    if(DirectionR == CC)
+    {
+        digitalWrite(INB1,HIGH);
+        digitalWrite(INB2,LOW);
+    }
+    else
+    {
+        digitalWrite(INB1,LOW);
+        digitalWrite(INB2,HIGH);
+    }
+    
+//    analogWrite(PWMA, OutputL);
+//    analogWrite(PWMB, OutputR);
+
 }
 
 void Encoder()
 {
-    if((millis()-LastSpeedLoop) >= MotorSpeedLoopTime)
-    {
+    // if((millis()-LastSpeedLoop) >= MotorSpeedLoopTime)
+    // {
         EncData.NewLPos = myEncLeft.read();
         EncData.NewRPos = myEncRight.read();
 
@@ -121,7 +118,10 @@ void Encoder()
         EncData.OldRPos = EncData.NewRPos;
 
         LastSpeedLoop = millis();
-    }
+
+        myEncLeft.write(0); //reset encoder ticks
+        myEncRight.write(0);
+    // }
 
 }
 
@@ -165,7 +165,7 @@ void GloveData()
         MD.SetSpeedR = map(gSense.pitch, 0,180,10,200);
 
         MD.DirectionL = CCW;
-        MD.DirectionR = CCW;
+        MD.DirectionR = CC;
     }
     else if(gSense.pitch >= 200 && gSense.pitch >=320)
     {
@@ -173,13 +173,18 @@ void GloveData()
         MD.SetSpeedR = map(gSense.pitch, 200,320,10,200);
 
         MD.DirectionL = CC;
-        MD.DirectionR = CC;
+        MD.DirectionR = CCW;
     }
 
-    MD.DirectionL = CC;
-    MD.DirectionR = CC;
-    MD.SetSpeedL =  20;
-    MD.SetSpeedR = 20;
+    MD.DirectionL = CCW;
+    MD.DirectionR = CCW;
+    MD.SetSpeedL =  40;
+    MD.SetSpeedR = 40;
+}
+
+void AccelData()
+{
+
 }
 
 void Mode(int mode)
@@ -188,6 +193,10 @@ void Mode(int mode)
     {
         //Constant Speed Mode
         case 1:
+
+            analogWrite(PWMA, OutputL);
+            analogWrite(PWMB, OutputR);
+            
             ConstantSpeed();
             break;
         //Fusion mode
@@ -213,11 +222,19 @@ void Mode(int mode)
 
 }
 
+void serialData()
+{
+    Serial.print((String)MD.CurSpeedL + " ");
+    Serial.print((String)MD.CurSpeedR + " ");
+    Serial.print((String)OutputL + " ");
+    Serial.println((String)OutputR + " ");
+}
 
 void setup()
 {
     Serial.begin(9600);
-    //analogWriteFrequency(8, 375000);
+    analogWriteFrequency(PWMA, 58593.75);
+    analogWriteFrequency(PWMB, 58593.75);
     lcd.init();
     lcd.backlight();
 
@@ -234,15 +251,15 @@ void setup()
     pinMode(INB2,OUTPUT);
     pinMode(PWMA,OUTPUT);
     pinMode(PWMB,OUTPUT);
-    
+
+    motorTimer.begin(Encoder, 10);
+
     //Encoder Pins modes 
     // pinMode(ENCLA,INPUT);
     // pinMode(ENCLB,INPUT);
     // pinMode(ENCRA,INPUT);
     // pinMode(ENCRB,INPUT);
 
-    //pinMode(8,OUTPUT);
-    //pinMode(7,OUTPUT);
 }
 
 long lastmillis =0;
@@ -255,11 +272,8 @@ void loop()
 
     if((millis() - lastmillis) >= 10)
     {
-    Serial.print((String)MD.CurSpeedL + " ");
-    Serial.println((String)MD.CurSpeedR + " ");
-    //Serial.println((String)OutputL);
-
-    lastmillis = millis();
+        serialData();
+        lastmillis = millis();
     }
 
 
@@ -269,6 +283,7 @@ void loop()
 
     IR(); //Get IR sensor reading
 
+    
     Mode(1);
 
 }

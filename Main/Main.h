@@ -8,18 +8,18 @@
 #define CCW 1
 
 //Motor Driver Pins
-#define INA1 6
-#define INA2 10
-#define PWMA 8
-#define INB1 6
-#define INB2 7
-#define PWMB 12
+#define INA1 2
+#define INA2 3
+#define PWMA 4
+#define INB1 5
+#define INB2 6
+#define PWMB 7
 
 //Encoder Pins
-#define ENCRA 23
-#define ENCRB 22
-#define ENCLA 21
-#define ENCLB 20
+#define ENCLA 23
+#define ENCLB 22
+#define ENCRA 21
+#define ENCRB 20
 
 //IR sensor Pins
 
