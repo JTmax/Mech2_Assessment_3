@@ -252,7 +252,7 @@ void setup()
     pinMode(PWMA,OUTPUT);
     pinMode(PWMB,OUTPUT);
 
-    motorTimer.begin(Encoder, 10);
+    motorTimer.begin(Encoder, MotorSpeedLoopTime);
 
     //Encoder Pins modes 
     // pinMode(ENCLA,INPUT);
