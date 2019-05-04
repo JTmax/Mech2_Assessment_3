@@ -96,10 +96,10 @@ void Motor(int SetSpeedL, int SetSpeedR, int DirectionL, int DirectionR)
 
 }
 
-void Encoder()
+void EncoderD()
 {
-    // if((millis()-LastSpeedLoop) >= MotorSpeedLoopTime)
-    // {
+     if((millis()-LastSpeedLoop) >= MotorSpeedLoopTime)
+     {
         EncData.NewLPos = myEncLeft.read();
         EncData.NewRPos = myEncRight.read();
 
@@ -121,7 +121,7 @@ void Encoder()
 
         myEncLeft.write(0); //reset encoder ticks
         myEncRight.write(0);
-    // }
+     }
 
 }
 
@@ -252,8 +252,8 @@ void setup()
     pinMode(PWMA,OUTPUT);
     pinMode(PWMB,OUTPUT);
 
-    motorTimer.begin(Encoder, MotorSpeedLoopTime);
-
+    //motorTimer.begin(EncoderD, MotorSpeedLoopTime);
+ 
     //Encoder Pins modes 
     // pinMode(ENCLA,INPUT);
     // pinMode(ENCLB,INPUT);
@@ -268,7 +268,7 @@ void loop()
     LeftPID.Compute();
     RightPID.Compute();
 
-    Encoder(); //Get current motor speed
+    EncoderD(); //Get current motor speed
 
     if((millis() - lastmillis) >= 10)
     {
