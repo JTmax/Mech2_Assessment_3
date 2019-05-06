@@ -119,8 +119,8 @@ void EncoderD()
 
         LastSpeedLoop = millis();
 
-        myEncLeft.write(0); //reset encoder ticks
-        myEncRight.write(0);
+        // myEncLeft.write(0); //reset encoder ticks
+        // myEncRight.write(0);
      }
 
 }
