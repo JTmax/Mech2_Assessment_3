@@ -13,10 +13,10 @@ Encoder myEncLeft(ENCLA,ENCLB);
 Encoder myEncRight(ENCRA, ENCRB);
 
 double SetpointL, InputL, OutputL;
-double KpL=4, KiL=9, KdL=0;
+double KpL=1.1, KiL=1, KdL=0;
 
 double SetpointR, InputR, OutputR;
-double KpR=4, KiR=9, KdR=0;
+double KpR =1.1, KiR=1, KdR=0;
 
 PID LeftPID(&InputL, &OutputL, &SetpointL, KpL, KiL, KdL, DIRECT);
 PID RightPID(&InputR, &OutputR, &SetpointR, KpR, KiR, KdR, DIRECT);
@@ -41,7 +41,7 @@ struct SixDofData gSense;
 struct MotorData MD;
 struct EncoderData EncData;
 
-int MotorSpeedLoopTime = 10; //In micro seconds
+int MotorSpeedLoopTime = 25000; //In micro seconds
 long LastSpeedLoop = 0;
 
 int ScreenRefreshTime = 100; //In mili seconds
@@ -52,6 +52,7 @@ void IR() //For Hope
 
 
 }
+
 
 float Filter(float prevSpeed, float CurrentSpeed)
 {
@@ -98,32 +99,54 @@ void Motor(int SetSpeedL, int SetSpeedR, int DirectionL, int DirectionR)
 
 void EncoderD()
 {
-     if((millis()-LastSpeedLoop) >= MotorSpeedLoopTime)
-     {
+//     if((millis()-LastSpeedLoop) >= MotorSpeedLoopTime)
+//     {
         EncData.NewLPos = myEncLeft.read();
         EncData.NewRPos = myEncRight.read();
 
-        EncData.DeltaL = EncData.NewLPos - EncData.OldLPos; //Gets new encoder postion 
-        EncData.DeltaR = EncData.NewRPos - EncData.OldRPos;
+        myEncLeft.write(0); //reset encoder ticks
+        myEncRight.write(0);
+         
+//        EncData.DeltaL = EncData.NewLPos - EncData.OldLPos; //Gets new encoder postion 
+//        EncData.DeltaR = EncData.NewRPos - EncData.OldRPos;
 
-        MD.CurSpeedL = abs(60000/((1156.68/EncData.DeltaL)*(MotorSpeedLoopTime))); //Calcualtes current motor speed
-        MD.CurSpeedR = abs(60000/((1156.68/EncData.DeltaR)*(MotorSpeedLoopTime))); 
+        if(EncData.DeltaL ==0)
+        {
+            MD.CurSpeedL =0;
+        }
+        else
+        {
+            MD.CurSpeedL = abs(60000000/((1156.68/EncData.NewLPos)*(MotorSpeedLoopTime))); //Calcualtes current motor speed
+
+        }
+
+        
+        if(EncData.DeltaR ==0)
+        {
+            MD.CurSpeedR =0;
+        }
+        else
+        {
+            MD.CurSpeedR = abs(60000000/((1156.68/EncData.NewRPos)*(MotorSpeedLoopTime))); 
+
+        }
+        
 
         //MD.FilteredL = Filter(MD.FilteredL, MD.CurSpeedL);
 
         InputL = MD.CurSpeedL; //PID Input speed
         InputR = MD.CurSpeedR; //PID Input speed 
 
-        EncData.OldLPos = EncData.NewLPos;
-        EncData.OldRPos = EncData.NewRPos;
+        //EncData.OldLPos = EncData.NewLPos;
+        //EncData.OldRPos = EncData.NewRPos;
 
-        LastSpeedLoop = millis();
+//        LastSpeedLoop = millis();
 
-        // myEncLeft.write(0); //reset encoder ticks
-        // myEncRight.write(0);
-     }
+
+//     }
 
 }
+
 
 void Coms() //For Yashwin
 {
@@ -176,8 +199,8 @@ void GloveData()
         MD.DirectionR = CCW;
     }
 
-    MD.DirectionL = CCW;
-    MD.DirectionR = CCW;
+    MD.DirectionL = CC;
+    MD.DirectionR = CC;
     MD.SetSpeedL =  40;
     MD.SetSpeedR = 40;
 }
@@ -215,7 +238,7 @@ void Mode(int mode)
         lcd.print("SL:"+(String)MD.CurSpeedL + " RPM");
         
         lcd.setCursor(0,1 );
-        lcd.print("SD:"+(String)MD.CurSpeedR + " RPM");
+        lcd.print("SR:"+(String)MD.CurSpeedR + " RPM");
 
         LastScreenLoop = millis();
     }
@@ -226,8 +249,9 @@ void serialData()
 {
     Serial.print((String)MD.CurSpeedL + " ");
     Serial.print((String)MD.CurSpeedR + " ");
-    Serial.print((String)OutputL + " ");
-    Serial.println((String)OutputR + " ");
+    Serial.print((String)SetpointL + " ");
+    Serial.print((String)EncData.NewLPos + " ");
+    Serial.println((String)EncData.OldLPos);
 }
 
 void setup()
@@ -252,7 +276,7 @@ void setup()
     pinMode(PWMA,OUTPUT);
     pinMode(PWMB,OUTPUT);
 
-    //motorTimer.begin(EncoderD, MotorSpeedLoopTime);
+    motorTimer.begin(EncoderD, MotorSpeedLoopTime);
  
     //Encoder Pins modes 
     // pinMode(ENCLA,INPUT);
@@ -268,15 +292,15 @@ void loop()
     LeftPID.Compute();
     RightPID.Compute();
 
-    EncoderD(); //Get current motor speed
+    //EncoderD(); //Get current motor speed
 
-    if((millis() - lastmillis) >= 10)
+    if((millis() - lastmillis) >= 30)
     {
         serialData();
         lastmillis = millis();
     }
 
-
+//    speeds();
     Coms(); //Get data from bluetooth
     
     GloveData(); //Compute Glove data
