@@ -13,10 +13,10 @@ Encoder myEncLeft(ENCLA,ENCLB);
 Encoder myEncRight(ENCRA, ENCRB);
 
 double SetpointL, InputL, OutputL;
-double KpL=1.1, KiL=1, KdL=0;
+double KpL=1.22, KiL=1.4, KdL=0;
 
 double SetpointR, InputR, OutputR;
-double KpR =1.1, KiR=1, KdR=0;
+double KpR =1.22, KiR=1.4, KdR=0;
 
 PID LeftPID(&InputL, &OutputL, &SetpointL, KpL, KiL, KdL, DIRECT);
 PID RightPID(&InputR, &OutputR, &SetpointR, KpR, KiR, KdR, DIRECT);
@@ -99,18 +99,14 @@ void Motor(int SetSpeedL, int SetSpeedR, int DirectionL, int DirectionR)
 
 void EncoderD()
 {
-//     if((millis()-LastSpeedLoop) >= MotorSpeedLoopTime)
-//     {
+
         EncData.NewLPos = myEncLeft.read();
         EncData.NewRPos = myEncRight.read();
-
+        
         myEncLeft.write(0); //reset encoder ticks
         myEncRight.write(0);
          
-//        EncData.DeltaL = EncData.NewLPos - EncData.OldLPos; //Gets new encoder postion 
-//        EncData.DeltaR = EncData.NewRPos - EncData.OldRPos;
-
-        if(EncData.DeltaL ==0)
+        if(EncData.NewLPos ==0)
         {
             MD.CurSpeedL =0;
         }
@@ -121,7 +117,7 @@ void EncoderD()
         }
 
         
-        if(EncData.DeltaR ==0)
+        if(EncData.NewRPos ==0)
         {
             MD.CurSpeedR =0;
         }
@@ -132,18 +128,9 @@ void EncoderD()
         }
         
 
-        //MD.FilteredL = Filter(MD.FilteredL, MD.CurSpeedL);
-
         InputL = MD.CurSpeedL; //PID Input speed
         InputR = MD.CurSpeedR; //PID Input speed 
 
-        //EncData.OldLPos = EncData.NewLPos;
-        //EncData.OldRPos = EncData.NewRPos;
-
-//        LastSpeedLoop = millis();
-
-
-//     }
 
 }
 
@@ -201,8 +188,8 @@ void GloveData()
 
     MD.DirectionL = CC;
     MD.DirectionR = CC;
-    MD.SetSpeedL =  40;
-    MD.SetSpeedR = 40;
+    MD.SetSpeedL =  30;
+    MD.SetSpeedR = 20;
 }
 
 void AccelData()
@@ -250,8 +237,8 @@ void serialData()
     Serial.print((String)MD.CurSpeedL + " ");
     Serial.print((String)MD.CurSpeedR + " ");
     Serial.print((String)SetpointL + " ");
-    Serial.print((String)EncData.NewLPos + " ");
-    Serial.println((String)EncData.OldLPos);
+    Serial.println((String)SetpointR + " ");
+    //Serial.println((String)EncData.OldLPos);
 }
 
 void setup()
