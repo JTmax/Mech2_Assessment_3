@@ -15,7 +15,6 @@ Encoder userSetSpeed(29,30);
 
 int userSetVal =0;
 
-
 double SetpointL, InputL, OutputL;
 double KpL=1.22, KiL=1.4, KdL=0;
 
@@ -50,12 +49,6 @@ long LastSpeedLoop = 0;
 
 int ScreenRefreshTime = 100; //In mili seconds
 long LastScreenLoop =0;
-
-void speedSet() //For Hope
-{
-  
-
-}
 
 
 float Filter(float prevSpeed, float CurrentSpeed)
@@ -95,47 +88,41 @@ void Motor(int SetSpeedL, int SetSpeedR, int DirectionL, int DirectionR)
         digitalWrite(INB1,LOW);
         digitalWrite(INB2,HIGH);
     }
-    
-//    analogWrite(PWMA, OutputL);
-//    analogWrite(PWMB, OutputR);
+
 
 }
 
 void EncoderD()
 {
-        userSetVal = userSetSpeed.read();
+    userSetVal = userSetSpeed.read();
+
+    EncData.NewLPos = myEncLeft.read();
+    EncData.NewRPos = myEncRight.read();
+    
+    myEncLeft.write(0); //reset encoder ticks
+    myEncRight.write(0);
         
-        EncData.NewLPos = myEncLeft.read();
-        EncData.NewRPos = myEncRight.read();
-        
-        myEncLeft.write(0); //reset encoder ticks
-        myEncRight.write(0);
-         
-        if(EncData.NewLPos ==0)
-        {
-            MD.CurSpeedL =0;
-        }
-        else
-        {
-            MD.CurSpeedL = abs(60000000/((1156.68/EncData.NewLPos)*(MotorSpeedLoopTime))); //Calcualtes current motor speed
+    if(EncData.NewLPos ==0)
+    {
+        MD.CurSpeedL =0;
+    }
+    else
+    {
+        MD.CurSpeedL = abs(60000000/((1156.68/EncData.NewLPos)*(MotorSpeedLoopTime))); //Calcualtes current motor speed
 
-        }
+    }  
+    if(EncData.NewRPos ==0)
+    {
+        MD.CurSpeedR =0;
+    }
+    else
+    {
+        MD.CurSpeedR = abs(60000000/((1156.68/EncData.NewRPos)*(MotorSpeedLoopTime))); 
 
-        
-        if(EncData.NewRPos ==0)
-        {
-            MD.CurSpeedR =0;
-        }
-        else
-        {
-            MD.CurSpeedR = abs(60000000/((1156.68/EncData.NewRPos)*(MotorSpeedLoopTime))); 
+    }
 
-        }
-        
-
-        InputL = MD.CurSpeedL; //PID Input speed
-        InputR = MD.CurSpeedR; //PID Input speed 
-
+    InputL = MD.CurSpeedL; //PID Input speed
+    InputR = MD.CurSpeedR; //PID Input speed 
 
 }
 
@@ -143,10 +130,6 @@ void EncoderD()
 void Coms() //For Yashwin
 {
     //Parse serial data from bluetooth module 
-
-
-
-
 
     //Set struct data
     gSense.pitch= 0;
@@ -173,24 +156,6 @@ void FusionMode()
 void GloveData()
 {
     //Logic to determine speed and direction of motors 
-
-    if(gSense.pitch >= 0 && gSense.pitch <= 180 )
-    {
-        MD.SetSpeedL = map(gSense.pitch, 0,180,10,200); //map angle 0-180 to speed 10 - 200 RPM;
-        MD.SetSpeedR = map(gSense.pitch, 0,180,10,200);
-
-        MD.DirectionL = CCW;
-        MD.DirectionR = CC;
-    }
-    else if(gSense.pitch >= 200 && gSense.pitch >=320)
-    {
-        MD.SetSpeedL = map(gSense.pitch, 200,320,10,200); //map angle 0-180 to speed 10 - 200 RPM;
-        MD.SetSpeedR = map(gSense.pitch, 200,320,10,200);
-
-        MD.DirectionL = CC;
-        MD.DirectionR = CCW;
-    }
-
     MD.DirectionL = CC;
     MD.DirectionR = CC;
     MD.SetSpeedL =  30;
@@ -244,8 +209,7 @@ void serialData()
     Serial.print((String)MD.CurSpeedL + " ");
     Serial.print((String)MD.CurSpeedR + " ");
     Serial.print((String)SetpointL + " ");
-    Serial.println((String)userSetSpeed.read() + " ");
-    //Serial.println((String)EncData.OldLPos);
+    Serial.println((String)SetpointL + " ");
 }
 
 void setup()
@@ -271,12 +235,6 @@ void setup()
     pinMode(PWMB,OUTPUT);
 
     motorTimer.begin(EncoderD, MotorSpeedLoopTime);
- 
-    //Encoder Pins modes 
-    // pinMode(ENCLA,INPUT);
-    // pinMode(ENCLB,INPUT);
-    // pinMode(ENCRA,INPUT);
-    // pinMode(ENCRB,INPUT);
 
 }
 
