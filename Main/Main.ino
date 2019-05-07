@@ -11,6 +11,10 @@ IntervalTimer motorTimer;
 
 Encoder myEncLeft(ENCLA,ENCLB);
 Encoder myEncRight(ENCRA, ENCRB);
+Encoder userSetSpeed(29,30);
+
+int userSetVal =0;
+
 
 double SetpointL, InputL, OutputL;
 double KpL=1.22, KiL=1.4, KdL=0;
@@ -47,9 +51,9 @@ long LastSpeedLoop = 0;
 int ScreenRefreshTime = 100; //In mili seconds
 long LastScreenLoop =0;
 
-void IR() //For Hope
+void speedSet() //For Hope
 {
-
+  
 
 }
 
@@ -99,7 +103,8 @@ void Motor(int SetSpeedL, int SetSpeedR, int DirectionL, int DirectionR)
 
 void EncoderD()
 {
-
+        userSetVal = userSetSpeed.read();
+        
         EncData.NewLPos = myEncLeft.read();
         EncData.NewRPos = myEncRight.read();
         
@@ -155,7 +160,7 @@ void Coms() //For Yashwin
 
 void ConstantSpeed()
 {
-    Motor(MD.SetSpeedL,MD.SetSpeedR, MD.DirectionL, MD.DirectionR);
+    Motor(userSetVal,userSetVal, MD.DirectionL, MD.DirectionR);
 }
 
 void FusionMode()
@@ -227,6 +232,8 @@ void Mode(int mode)
         lcd.setCursor(0,1 );
         lcd.print("SR:"+(String)MD.CurSpeedR + " RPM");
 
+        lcd.setCursor(9,0);
+        lcd.print("S:"+(String)userSetVal);
         LastScreenLoop = millis();
     }
 
@@ -237,7 +244,7 @@ void serialData()
     Serial.print((String)MD.CurSpeedL + " ");
     Serial.print((String)MD.CurSpeedR + " ");
     Serial.print((String)SetpointL + " ");
-    Serial.println((String)SetpointR + " ");
+    Serial.println((String)userSetSpeed.read() + " ");
     //Serial.println((String)EncData.OldLPos);
 }
 
@@ -279,6 +286,7 @@ void loop()
     LeftPID.Compute();
     RightPID.Compute();
 
+    //speedSet();
     //EncoderD(); //Get current motor speed
 
     if((millis() - lastmillis) >= 30)
@@ -292,7 +300,7 @@ void loop()
     
     GloveData(); //Compute Glove data
 
-    IR(); //Get IR sensor reading
+    //IR(); //Get IR sensor reading
 
     
     Mode(1);
