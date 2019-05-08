@@ -109,8 +109,8 @@ void EncoderD()
     else
     {
         MD.CurSpeedL = abs(60000000/((1156.68/EncData.NewLPos)*(MotorSpeedLoopTime))); //Calcualtes current motor speed
-
     }  
+
     if(EncData.NewRPos ==0)
     {
         MD.CurSpeedR =0;
@@ -118,7 +118,6 @@ void EncoderD()
     else
     {
         MD.CurSpeedR = abs(60000000/((1156.68/EncData.NewRPos)*(MotorSpeedLoopTime))); 
-
     }
 
     InputL = MD.CurSpeedL; //PID Input speed
@@ -143,7 +142,7 @@ void Coms() //For Yashwin
 
 void ConstantSpeed()
 {
-    Motor(userSetVal,userSetVal, MD.DirectionL, MD.DirectionR);
+    Motor(userSetVal, userSetVal, MD.DirectionL, MD.DirectionR);
 }
 
 void FusionMode()
@@ -157,8 +156,8 @@ void GloveData()
 {
     //Logic to determine speed and direction of motors 
     MD.DirectionL = CC;
-    MD.DirectionR = CC;
-    MD.SetSpeedL =  30;
+    MD.DirectionR = CCW;
+    MD.SetSpeedL =  20;
     MD.SetSpeedR = 20;
 }
 
@@ -215,8 +214,7 @@ void serialData()
 void setup()
 {
     Serial.begin(9600);
-    analogWriteFrequency(PWMA, 58593.75);
-    analogWriteFrequency(PWMB, 58593.75);
+    
     lcd.init();
     lcd.backlight();
 
@@ -234,18 +232,19 @@ void setup()
     pinMode(PWMA,OUTPUT);
     pinMode(PWMB,OUTPUT);
 
+    analogWriteFrequency(PWMA, 58593.75);
+    analogWriteFrequency(PWMB, 58593.75);
+
     motorTimer.begin(EncoderD, MotorSpeedLoopTime);
 
 }
 
 long lastmillis =0;
+
 void loop()
 {   
     LeftPID.Compute();
     RightPID.Compute();
-
-    //speedSet();
-    //EncoderD(); //Get current motor speed
 
     if((millis() - lastmillis) >= 30)
     {
@@ -253,15 +252,12 @@ void loop()
         lastmillis = millis();
     }
 
-//    speeds();
     Coms(); //Get data from bluetooth
     
     GloveData(); //Compute Glove data
 
     //IR(); //Get IR sensor reading
-
     
     Mode(1);
-
 }
 
