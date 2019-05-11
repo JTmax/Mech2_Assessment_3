@@ -2,16 +2,19 @@
 #include <Encoder.h>
 #include <PID_v1.h>
 #include <LiquidCrystal_I2C.h>
+#include <NewPing.h>
 
 LiquidCrystal_I2C lcd(0x27,20,4);
+NewPing sonar(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE);
 
 int testing = 1;
+int distance = 0;
 
 IntervalTimer motorTimer;
+IntervalTimer pingTimer;
 
 Encoder myEncLeft(ENCLA,ENCLB);
 Encoder myEncRight(ENCRA, ENCRB);
-Encoder userSetSpeed(29,30);
 
 int userSetVal =0;
 
@@ -60,6 +63,11 @@ float Filter(float prevSpeed, float CurrentSpeed)
     return(FilteredVal);
 }
 
+void distData()
+{
+  distance = sonar.ping_cm();
+}
+
 void Motor(int SetSpeedL, int SetSpeedR, int DirectionL, int DirectionR)
 {
     SetpointL = SetSpeedL;
@@ -94,13 +102,18 @@ void Motor(int SetSpeedL, int SetSpeedR, int DirectionL, int DirectionR)
 
 void EncoderD()
 {
-    userSetVal = userSetSpeed.read();
+    //userSetVal = userSetSpeed.read();
 
     EncData.NewLPos = myEncLeft.read();
     EncData.NewRPos = myEncRight.read();
     
-    myEncLeft.write(0); //reset encoder ticks
-    myEncRight.write(0);
+    EncData.DeltaL = EncData.NewLPos - EncData.OldLPos; //Gets new encoder postion 
+    EncData.DeltaR = EncData.NewRPos - EncData.OldRPos;
+    
+    EncData.OldLPos = EncData.NewLPos;
+    EncData.OldRPos = EncData.NewRPos; 
+    //myEncLeft.write(0); //reset encoder ticks
+    //myEncRight.write(0);
         
     if(EncData.NewLPos ==0)
     {
@@ -108,7 +121,7 @@ void EncoderD()
     }
     else
     {
-        MD.CurSpeedL = abs(60000000/((1156.68/EncData.NewLPos)*(MotorSpeedLoopTime))); //Calcualtes current motor speed
+        MD.CurSpeedL = abs(60000000/((1156.68/EncData.DeltaL)*(MotorSpeedLoopTime))); //Calcualtes current motor speed
     }  
 
     if(EncData.NewRPos ==0)
@@ -117,7 +130,7 @@ void EncoderD()
     }
     else
     {
-        MD.CurSpeedR = abs(60000000/((1156.68/EncData.NewRPos)*(MotorSpeedLoopTime))); 
+        MD.CurSpeedR = abs(60000000/((1156.68/EncData.DeltaR)*(MotorSpeedLoopTime))); 
     }
 
     InputL = MD.CurSpeedL; //PID Input speed
@@ -142,7 +155,7 @@ void Coms() //For Yashwin
 
 void ConstantSpeed()
 {
-    Motor(userSetVal, userSetVal, MD.DirectionL, MD.DirectionR);
+    Motor(MD.SetSpeedL,MD.SetSpeedR, MD.DirectionL, MD.DirectionR);
 }
 
 void FusionMode()
@@ -165,6 +178,30 @@ void AccelData()
 {
 //test
 }
+
+int Move(int setSpeed, int setSteps)
+{
+    MD.DirectionL = CC;
+    MD.DirectionR = CCW;
+    
+    if(abs(myEncRight.read()) >= setSteps)
+    {
+        MD.SetSpeedL = 0;
+        MD.SetSpeedR = 0;
+        myEncLeft.write(0); //reset encoder ticks
+        myEncRight.write(0);
+        return(1);
+    }
+    else 
+    {
+        MD.SetSpeedL =  setSpeed;
+        MD.SetSpeedR = setSpeed;
+        
+    }
+
+    return(0);
+}
+
 
 void Mode(int mode)
 {
@@ -198,9 +235,28 @@ void Mode(int mode)
 
         lcd.setCursor(9,0);
         lcd.print("S:"+(String)userSetVal);
+
+        lcd.setCursor(9,1);
+        lcd.print("D:"+(String)distance);
+        
         LastScreenLoop = millis();
     }
 
+}
+
+int nbDelay(long imillis, int setDelay)
+{
+    if(millis() - imillis >= setDelay)
+    {
+        return(1);
+    }
+    else
+    {
+        MD.SetSpeedL = 0;
+        MD.SetSpeedR = 0;
+    }
+    
+    return(0);
 }
 
 void serialData()
@@ -214,7 +270,7 @@ void serialData()
 void setup()
 {
     Serial.begin(9600);
-    
+    Serial4.begin(9600);
     lcd.init();
     lcd.backlight();
 
@@ -236,11 +292,14 @@ void setup()
     analogWriteFrequency(PWMB, 58593.75);
 
     motorTimer.begin(EncoderD, MotorSpeedLoopTime);
-
+    pingTimer.begin(distData, 40000);
 }
 
 long lastmillis =0;
+int flagSet = 0;
+long imil = 0;
 
+int pos = 0;
 void loop()
 {   
     LeftPID.Compute();
@@ -248,13 +307,91 @@ void loop()
 
     if((millis() - lastmillis) >= 30)
     {
-        serialData();
+        //serialData();
+        //Serial.print(pos);
+        //Serial.print(" ");
+        //Serial.println(MD.SetSpeedL);
+
+        Serial4.println("0");
         lastmillis = millis();
     }
 
+    if(Serial4.available())
+    {
+      String c = Serial.read();
+      Serial.println(c);
+    }
+    
     Coms(); //Get data from bluetooth
     
-    GloveData(); //Compute Glove data
+    //GloveData(); //Compute Glove data
+    switch (pos)
+    {
+        case 0:
+            flagSet = Move(25,1000);
+            if(flagSet == 1)
+            {
+                pos++;
+                imil = millis();
+            }
+            break;
+        
+        case 1:
+            flagSet = nbDelay(imil,1000);
+            if(flagSet == 1)
+            {
+                pos++;
+            }
+            break;
+            
+        case 2:
+            flagSet = Move(25,1000);
+            if(flagSet == 1)
+            {
+                pos++;
+                imil = millis();
+            }
+            break;
+            
+        case 3:
+            flagSet = nbDelay(imil,1000);
+            if(flagSet == 1)
+            {
+                pos++;
+            }
+            break;
+            
+        case 4:
+            flagSet = Move(25,1000);
+            if(flagSet == 1)
+            {
+                pos++;
+                imil = millis();
+            }
+            break;
+        
+        case 5:
+            flagSet = nbDelay(imil,1000);
+            if(flagSet == 1)
+            {
+                pos++;
+            }
+            break;
+
+        case 6:
+            flagSet = Move(25,5000);
+            if(flagSet == 1)
+            {
+                pos++;
+                imil = millis();
+            }
+            break;
+            
+            
+        default:
+            break;
+    }
+    
 
     //IR(); //Get IR sensor reading
     
