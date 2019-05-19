@@ -24,6 +24,6 @@
 //IR sensor Pins
 #define TRIGGER_PIN  29  // Arduino pin tied to trigger pin on the ultrasonic sensor.
 #define ECHO_PIN     30  // Arduino pin tied to echo pin on the ultrasonic sensor.
-#define MAX_DISTANCE 200
+#define MAX_DISTANCE 100
 
 #endif

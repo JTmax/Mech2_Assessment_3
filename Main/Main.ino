@@ -22,7 +22,7 @@ double SetpointL, InputL, OutputL;
 double KpL=1.22, KiL=1.4, KdL=0;
 
 double SetpointR, InputR, OutputR;
-double KpR =1.22, KiR=1.4, KdR=0;
+double KpR =1.26, KiR=1.6, KdR=0;
 
 PID LeftPID(&InputL, &OutputL, &SetpointL, KpL, KiL, KdL, DIRECT);
 PID RightPID(&InputR, &OutputR, &SetpointR, KpR, KiR, KdR, DIRECT);
@@ -136,6 +136,8 @@ void EncoderD()
     InputL = MD.CurSpeedL; //PID Input speed
     InputR = MD.CurSpeedR; //PID Input speed 
 
+    //distance = sonar.ping_cm();
+
 }
 
 
@@ -181,9 +183,7 @@ void AccelData()
 
 int Move(int setSpeed, int setSteps)
 {
-    MD.DirectionL = CC;
-    MD.DirectionR = CCW;
-    
+
     if(abs(myEncRight.read()) >= setSteps)
     {
         MD.SetSpeedL = 0;
@@ -292,7 +292,7 @@ void setup()
     analogWriteFrequency(PWMB, 58593.75);
 
     motorTimer.begin(EncoderD, MotorSpeedLoopTime);
-    pingTimer.begin(distData, 40000);
+    //pingTimer.begin(distData, 35000);
 }
 
 long lastmillis =0;
@@ -312,15 +312,17 @@ void loop()
         //Serial.print(" ");
         //Serial.println(MD.SetSpeedL);
 
-        Serial4.println("0");
+        Serial4.println("4");
         lastmillis = millis();
+
+      if(Serial4.available())
+      {
+        char c = Serial4.read();
+        Serial.println(c);
+      }
     }
 
-    if(Serial4.available())
-    {
-      String c = Serial.read();
-      Serial.println(c);
-    }
+
     
     Coms(); //Get data from bluetooth
     
@@ -328,6 +330,9 @@ void loop()
     switch (pos)
     {
         case 0:
+            MD.DirectionL = CC;
+            MD.DirectionR = CCW;
+    
             flagSet = Move(25,1000);
             if(flagSet == 1)
             {
@@ -337,6 +342,7 @@ void loop()
             break;
         
         case 1:
+
             flagSet = nbDelay(imil,1000);
             if(flagSet == 1)
             {
@@ -345,6 +351,8 @@ void loop()
             break;
             
         case 2:
+            MD.DirectionL = CC;
+            MD.DirectionR = CCW;
             flagSet = Move(25,1000);
             if(flagSet == 1)
             {
@@ -362,6 +370,8 @@ void loop()
             break;
             
         case 4:
+            MD.DirectionL = CC;
+            MD.DirectionR = CCW;
             flagSet = Move(25,1000);
             if(flagSet == 1)
             {
@@ -379,6 +389,8 @@ void loop()
             break;
 
         case 6:
+            MD.DirectionL = CC;
+            MD.DirectionR = CC;
             flagSet = Move(25,5000);
             if(flagSet == 1)
             {
