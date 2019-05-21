@@ -2,13 +2,12 @@
 #include <Encoder.h>
 #include <PID_v1.h>
 #include <LiquidCrystal_I2C.h>
-#include <NewPing.h>
 
 LiquidCrystal_I2C lcd(0x27,20,4);
-NewPing sonar(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE);
 
 int testing = 1;
 int distance = 0;
+int reqSent = 0;
 
 IntervalTimer motorTimer;
 IntervalTimer pingTimer;
@@ -38,12 +37,7 @@ struct EncoderData
     long OldLPos =0, OldRPos =0, NewLPos =0, NewRPos=0, DeltaL=0, DeltaR=0;
 };
 
-struct SixDofData 
-{
-    int pitch, yaw, roll, accel_x, accel_y, accel_z;
-};
 
-struct SixDofData gSense;
 struct MotorData MD;
 struct EncoderData EncData;
 
@@ -63,10 +57,6 @@ float Filter(float prevSpeed, float CurrentSpeed)
     return(FilteredVal);
 }
 
-void distData()
-{
-  distance = sonar.ping_cm();
-}
 
 void Motor(int SetSpeedL, int SetSpeedR, int DirectionL, int DirectionR)
 {
@@ -97,6 +87,8 @@ void Motor(int SetSpeedL, int SetSpeedR, int DirectionL, int DirectionR)
         digitalWrite(INB2,HIGH);
     }
 
+    analogWrite(PWMA, OutputL);
+    analogWrite(PWMB, OutputR);
 
 }
 
@@ -141,18 +133,33 @@ void EncoderD()
 }
 
 
-void Coms() //For Yashwin
+String Coms() //For Yashwin
 {
     //Parse serial data from bluetooth module 
+      String serData;
 
-    //Set struct data
-    gSense.pitch= 0;
-    gSense.yaw =0;
-    gSense.roll =0;
-    gSense.accel_x =0;
-    gSense.accel_y =0;
-    gSense.accel_z =0;
+      Serial1.println("1");
 
+      while(1)
+      {
+          delay(1);
+          if(Serial1.available() > 0)
+          {
+            char c = Serial1.read();
+            //Serial.println(c, DEC);
+            if(c == '|')
+            {
+              Serial.println(serData);
+              return(serData);
+            }
+            else
+            {
+              serData += c;
+            }
+            //Serial.println(c);
+          }
+        
+      }
 }
 
 void ConstantSpeed()
@@ -160,28 +167,8 @@ void ConstantSpeed()
     Motor(MD.SetSpeedL,MD.SetSpeedR, MD.DirectionL, MD.DirectionR);
 }
 
-void FusionMode()
-{
 
-    Motor(MD.SetSpeedL,MD.SetSpeedR, MD.DirectionL, MD.DirectionR);
-}
-
-
-void GloveData()
-{
-    //Logic to determine speed and direction of motors 
-    MD.DirectionL = CC;
-    MD.DirectionR = CCW;
-    MD.SetSpeedL =  20;
-    MD.SetSpeedR = 20;
-}
-
-void AccelData()
-{
-//test
-}
-
-int Move(int setSpeed, int setSteps)
+int Move(int SetSpeed, int setSteps)
 {
 
     if(abs(myEncRight.read()) >= setSteps)
@@ -194,10 +181,13 @@ int Move(int setSpeed, int setSteps)
     }
     else 
     {
-        MD.SetSpeedL =  setSpeed;
-        MD.SetSpeedR = setSpeed;
+        Serial.println((String)myEncLeft.read());
+        MD.SetSpeedL =  SetSpeed;
+        MD.SetSpeedR = SetSpeed;
         
     }
+
+
 
     return(0);
 }
@@ -225,22 +215,7 @@ void Mode(int mode)
     }
 
     //Print Data to screen 
-    if((millis()-LastScreenLoop) >= ScreenRefreshTime)
-    {
-        lcd.clear();
-        lcd.print("SL:"+(String)MD.CurSpeedL + " RPM");
-        
-        lcd.setCursor(0,1 );
-        lcd.print("SR:"+(String)MD.CurSpeedR + " RPM");
 
-        lcd.setCursor(9,0);
-        lcd.print("S:"+(String)userSetVal);
-
-        lcd.setCursor(9,1);
-        lcd.print("D:"+(String)distance);
-        
-        LastScreenLoop = millis();
-    }
 
 }
 
@@ -266,11 +241,13 @@ void serialData()
     Serial.print((String)SetpointL + " ");
     Serial.println((String)SetpointL + " ");
 }
+String msg1;
 
 void setup()
 {
     Serial.begin(9600);
-    Serial4.begin(9600);
+    Serial1.begin(9600);
+    
     lcd.init();
     lcd.backlight();
 
@@ -298,7 +275,7 @@ void setup()
 long lastmillis =0;
 int flagSet = 0;
 long imil = 0;
-
+int killsw =0;
 int pos = 0;
 void loop()
 {   
@@ -312,19 +289,13 @@ void loop()
         //Serial.print(" ");
         //Serial.println(MD.SetSpeedL);
 
-        Serial4.println("4");
+        //Serial4.println("4");
         lastmillis = millis();
 
-      if(Serial4.available())
-      {
-        char c = Serial4.read();
-        Serial.println(c);
-      }
     }
 
-
     
-    Coms(); //Get data from bluetooth
+    //Coms(); //Get data from bluetooth 
     
     //GloveData(); //Compute Glove data
     switch (pos)
@@ -333,80 +304,108 @@ void loop()
             MD.DirectionL = CC;
             MD.DirectionR = CCW;
     
-            flagSet = Move(25,1000);
+            flagSet = Move(35,340);
             if(flagSet == 1)
             {
                 pos++;
                 imil = millis();
             }
             break;
-        
+
+
+
         case 1:
+            flagSet = nbDelay(imil,1000);
+            if(flagSet == 1)
+            {
+                pos =0;
+            }
+            break;
 
-            flagSet = nbDelay(imil,1000);
-            if(flagSet == 1)
-            {
-                pos++;
-            }
-            break;
-            
-        case 2:
-            MD.DirectionL = CC;
-            MD.DirectionR = CCW;
-            flagSet = Move(25,1000);
-            if(flagSet == 1)
-            {
-                pos++;
-                imil = millis();
-            }
-            break;
-            
-        case 3:
-            flagSet = nbDelay(imil,1000);
-            if(flagSet == 1)
-            {
-                pos++;
-            }
-            break;
-            
-        case 4:
-            MD.DirectionL = CC;
-            MD.DirectionR = CCW;
-            flagSet = Move(25,1000);
-            if(flagSet == 1)
-            {
-                pos++;
-                imil = millis();
-            }
-            break;
         
-        case 5:
-            flagSet = nbDelay(imil,1000);
-            if(flagSet == 1)
-            {
-                pos++;
-            }
-            break;
+//        case 1:
+//            //Serial.print("com sent: 1");
+//            MD.SetSpeedL =0;
+//            MD.SetSpeedR =0;
+//            msg1 = Coms();
+//            pos++;
+//            
+//            break;
+//        case 2:
+//        
+//            if(flagSet == 1 && reqSent == 0)
+//            {
+//                MD.DirectionL = CC;
+//                MD.DirectionR = CC;
+//                MD.SetSpeedL = 16;
+//                MD.SetSpeedR = 16;
+//                //pos = 0;
+//            }
+//            else if(flagSet == 0 && reqSent == 0)
+//            {
+//                pos = 0;
+//            }
+//            break;
+            
 
-        case 6:
-            MD.DirectionL = CC;
-            MD.DirectionR = CC;
-            flagSet = Move(25,5000);
-            if(flagSet == 1)
-            {
-                pos++;
-                imil = millis();
-            }
-            break;
-            
-            
+//            
+//        case 4:
+//            MD.DirectionL = CC;
+//            MD.DirectionR = CCW;
+//            flagSet = Move(25,1000);
+//            if(flagSet == 1)
+//            {
+//                pos++;
+//                imil = millis();
+//            }
+//            break;
+//        
+//        case 5:
+//            flagSet = nbDelay(imil,1000);
+//            if(flagSet == 1)
+//            {
+//                pos++;
+//            }
+//            break;
+//
+//        case 6:
+//            MD.DirectionL = CC;
+//            MD.DirectionR = CC;
+//            flagSet = Move(25,5000);
+//            if(flagSet == 1)
+//            {
+//                pos++;
+//                imil = millis();
+//            }
+//            break;
+//            
+        
         default:
             break;
     }
-    
 
+
+    
+    if((millis()-LastScreenLoop) >= ScreenRefreshTime)
+    {
+        lcd.clear();
+        lcd.print("SL:"+(String)MD.CurSpeedL + " RPM");
+        
+        lcd.setCursor(0,1 );
+        lcd.print("SR:"+(String)MD.CurSpeedR + " RPM");
+
+        lcd.setCursor(9,0);
+        lcd.print("S:"+(String)userSetVal);
+
+        lcd.setCursor(9,1);
+        lcd.print("D:"+(String)distance);
+        
+        LastScreenLoop = millis();
+    }
+
+    ConstantSpeed();
     //IR(); //Get IR sensor reading
     
-    Mode(1);
+    //Mode(1);
 }
 

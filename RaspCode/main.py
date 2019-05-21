@@ -89,7 +89,8 @@ def model(image):
 
 def readSerial(ser):
 	msg = ser.read_until()
-	return((str)msg)
+	
+	return (str)msg
 
 def sendMsg(dtect, offest):
 	msg = (str)dtect + "," str(offest)
