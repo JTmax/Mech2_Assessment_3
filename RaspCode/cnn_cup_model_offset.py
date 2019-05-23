@@ -13,7 +13,7 @@ CONF = 0.6
 
 ser = serial.Serial(
 
-  port='/dev/ttyACM0',
+  port='/dev/USB0',
   baudrate = 9600,
   stopbits=serial.STOPBITS_ONE,
   bytesize=serial.EIGHTBITS,
@@ -35,6 +35,8 @@ camera.awb_mode = 'off'
 camera.awb_gains = g
 
 cvNet = cv.dnn.readNetFromTensorflow('sorted_inference_graph.pb', 'graph.pbtxt')
+
+count = 0
 
 while True:
 
@@ -92,11 +94,16 @@ while True:
 		        cv.putText(img,"X_Of:"+str(Offest)+"px",(10,430), font, 2,(0,0,0),3,cv.LINE_AA)
 		        cv.putText(img,"P():"+str(round(score*100))+"%",(10,500), font, 2,(0,0,0),3,cv.LINE_AA)
 
-		        serilString = "1,"+ str(Offest)
+		       	#Save image
+		       	cv.imwrite('detect_img/{}.png'.format(count),img)
+		       	cv.imwrite('Website/img/img.png'.format(count),img)
+		       	count += 1
+
+		        serilString = "1,"+ str(Offest)+"\n"
 		        ser.write(Offest.encode('utf-8'))
 		    
 		    else:
-		    	serilString = "0,0000"
+		    	serilString = "0,0000\n"
 		    	ser.write(serilString.encode('utf-8'))
 
 			

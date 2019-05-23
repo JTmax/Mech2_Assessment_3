@@ -10,7 +10,6 @@ int distance = 0;
 int reqSent = 0;
 
 IntervalTimer motorTimer;
-IntervalTimer pingTimer;
 
 Encoder myEncLeft(ENCLA,ENCLB);
 Encoder myEncRight(ENCRA, ENCRB);
@@ -138,6 +137,9 @@ String Coms() //For Yashwin
     //Parse serial data from bluetooth module 
       String serData;
 
+      analogWrite(PWMA, 0);
+      analogWrite(PWMB, 0);
+      
       Serial1.println("1");
 
       while(1)
@@ -173,21 +175,22 @@ int Move(int SetSpeed, int setSteps)
 
     if(abs(myEncRight.read()) >= setSteps)
     {
+        
         MD.SetSpeedL = 0;
         MD.SetSpeedR = 0;
+        
         myEncLeft.write(0); //reset encoder ticks
         myEncRight.write(0);
+        
         return(1);
     }
     else 
     {
-        Serial.println((String)myEncLeft.read());
+        //Serial.println((String)myEncLeft.read());
         MD.SetSpeedL =  SetSpeed;
         MD.SetSpeedR = SetSpeed;
         
     }
-
-
 
     return(0);
 }
@@ -200,9 +203,6 @@ void Mode(int mode)
         //Constant Speed Mode
         case 1:
 
-            analogWrite(PWMA, OutputL);
-            analogWrite(PWMB, OutputR);
-            
             ConstantSpeed();
             break;
         //Fusion mode
@@ -294,10 +294,7 @@ void loop()
 
     }
 
-    
-    //Coms(); //Get data from bluetooth 
-    
-    //GloveData(); //Compute Glove data
+
     switch (pos)
     {
         case 0:
@@ -305,32 +302,31 @@ void loop()
             MD.DirectionR = CCW;
     
             flagSet = Move(35,340);
+            
             if(flagSet == 1)
             {
+                //Serial.println(flagSet);
+                MD.SetSpeedL =0;
+                MD.SetSpeedR =0;
+                
                 pos++;
                 imil = millis();
             }
             break;
-
-
-
-        case 1:
-            flagSet = nbDelay(imil,1000);
-            if(flagSet == 1)
-            {
-                pos =0;
-            }
-            break;
-
         
-//        case 1:
-//            //Serial.print("com sent: 1");
-//            MD.SetSpeedL =0;
-//            MD.SetSpeedR =0;
-//            msg1 = Coms();
-//            pos++;
-//            
-//            break;
+        case 1:
+            Serial.println("com sent: 1");
+                MD.SetSpeedL =0;
+                MD.SetSpeedR =0;
+            ConstantSpeed();
+            
+            msg1 = Coms();
+            pos++;
+            break;
+        case 2:
+                pos =0;
+            
+            break;
 //        case 2:
 //        
 //            if(flagSet == 1 && reqSent == 0)
