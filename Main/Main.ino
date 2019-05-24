@@ -154,21 +154,20 @@ String Coms() //For Yashwin
     //Parse serial data from bluetooth module 
       String serData;
 
-      analogWrite(PWMA, 0);
-      analogWrite(PWMB, 0);
+      //analogWrite(PWMA, 0);
+      //analogWrite(PWMB, 0);
       
       Serial1.println("1");
-
+      Serial.println("Com Sent: 1");
+      
       while(1)
       {
           delay(1);
           if(Serial1.available() > 0)
           {
             char c = Serial1.read();
-            //Serial.println(c, DEC);
             if(c == '|')
             {
-              Serial.println(serData);
               return(serData);
             }
             else
@@ -201,34 +200,11 @@ int Move(int SetSpeed, int setSteps)
     }
     else 
     {
-        //Serial.println((String)myEncLeft.read());
         MD.SetSpeedL =  SetSpeed;
-        MD.SetSpeedR = SetSpeed;
-        
+        MD.SetSpeedR = SetSpeed;   
     }
 
     return(0);
-}
-
-
-void Mode(int mode)
-{
-    switch (mode)
-    {
-        //Constant Speed Mode
-        case 1:
-
-            ConstantSpeed();
-            break;
-        //Fusion mode
-        case 2:
-
-            //FusionMode();
-            break;
-        default:
-            break;
-    }
-    //Print Data to screen 
 }
 
 int RotateToCup(String msg)
@@ -238,10 +214,11 @@ int RotateToCup(String msg)
 
     FoundFlag = msg.substring(0, msg.indexOf(","));
     xOffset = msg.substring(msg.indexOf(",")+1);
-
+    
+    Serial.println("\nFlag:" + FoundFlag);
+    
     if(FoundFlag.toInt() == 0)
     {
-        initial = 1; //reset 
         pos = 0; //reset
 
         return(0);
@@ -250,8 +227,10 @@ int RotateToCup(String msg)
     {
         int offsetval;
         
+        Serial.print("Offset:" + offsetval);
+        
         offsetval = xOffset.toInt();
-        if(offsetval <0)
+        if(offsetval < 0)
         {
             MD.DirectionL = CCW;
             MD.DirectionR = CC;
@@ -266,7 +245,7 @@ int RotateToCup(String msg)
             MD.DirectionR = CCW;
         }
 
-        return(offsetval);
+        return(abs(offsetval));
     }
     
 }
@@ -318,7 +297,7 @@ void setup()
 
     pinMode(KILL_SWITCH, INPUT); 
     
-    attachInterrupt(KILL_SWITCH, killSwitch, RISING);
+    attachInterrupt(KILL_SWITCH, killSwitch, FALLING);
 
     analogWriteFrequency(PWMA, 58593.75);
     analogWriteFrequency(PWMB, 58593.75);
@@ -326,17 +305,12 @@ void setup()
     motorTimer.begin(EncoderData, MotorSpeedLoopTime);
 }
 
-
+int mapping = 0;
 void loop()
 {   
     if((millis() - lastmillis) >= 30)
     {
         //serialData();
-        //Serial.print(pos);
-        //Serial.print(" ");
-        //Serial.println(MD.SetSpeedL);
-
-        //Serial4.println("4");
         lastmillis = millis();
 
     }
@@ -344,6 +318,11 @@ void loop()
     switch (pos)
     {
         case 0: //Search for cup
+            
+            Serial.println("In case: 0 (Searching for cup)");
+            
+            initial=0;
+            
             MD.DirectionL = CC;
             MD.DirectionR = CCW;
     
@@ -357,9 +336,9 @@ void loop()
             break;
         
         case 1: //Get prediction from pi 
-
-            Serial.println("Com Sent: 1");
-            msg1 = Coms();
+            
+            Serial.println("In case: 1 (Getting Prediction from Pi)" );
+            msg1 = Coms(); //Coms is a blocking functions
             pos++;
             break;
             
@@ -367,12 +346,19 @@ void loop()
             
             if(initial == 0) //will only do this once
             {
+                Serial.println("In case: 2/1 ");
+                
                 x_offset = RotateToCup(msg1);
+                
                 initial = 1;
             }
             else
             {
-                flagSet = Move(16, x_offset);
+                Serial.println("In case: 2/2 (Rotating towards cup)" );
+
+                mapping = x_offset * 1.7; //Map px displacment to excoder value
+                
+                flagSet = Move(16, mapping);
                 
                 if(flagSet == 1)
                 {
@@ -382,10 +368,12 @@ void loop()
             break;
 
         case 3: //Move towards cup
+
+            Serial.println("In case: 3 (Driving towards cup)");
             
             //Set motor directions
-            MD.DirectionL = CC; 
-            MD.DirectionR = CC;
+            MD.DirectionL = CCW; 
+            MD.DirectionR = CCW;
 
             if(killsw != 1) //Keep moving untill the killSwitch is pressed
             {
@@ -394,11 +382,45 @@ void loop()
             }
             else
             {
+                Serial.println("In case: 3 (Docked with cup)");
+                
                 MD.SetSpeedL = 0;
                 MD.SetSpeedR = 0;
 
                 pos++;
             }
+            break;
+
+         //BLOCKING FUNCTIONS//
+            
+         case 4: //Milk
+            Serial.println("In case: 4");
+            pos++;
+            break;
+
+         case 5: //Dunker
+            Serial.println("In case: 5");
+            pos++;
+            break;
+
+         case 6: // Hope
+            Serial.println("In case: 6");
+            pos++;
+            break;
+         
+         case 7: //Move back play beep
+            
+            MD.DirectionL = CC;
+            MD.DirectionR = CC;
+    
+            flagSet = Move(35,500);
+            
+            if(flagSet == 1)
+            {
+                pos++;
+                imil = millis();
+            }
+            
             break;
 
 //      case 2:
