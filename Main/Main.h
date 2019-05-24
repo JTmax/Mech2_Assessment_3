@@ -26,4 +26,6 @@
 #define ECHO_PIN     30  // Arduino pin tied to echo pin on the ultrasonic sensor.
 #define MAX_DISTANCE 100
 
+#define KILL_SWITCH 10
+
 #endif

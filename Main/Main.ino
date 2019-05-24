@@ -8,6 +8,14 @@ LiquidCrystal_I2C lcd(0x27,20,4);
 int testing = 1;
 int distance = 0;
 int reqSent = 0;
+int initial = 0;
+int pos = 0;
+long lastmillis =0;
+int flagSet = 0;
+long imil = 0;
+String msg1;
+int x_offset = 0;
+int killsw =0;
 
 IntervalTimer motorTimer;
 
@@ -46,21 +54,35 @@ long LastSpeedLoop = 0;
 int ScreenRefreshTime = 100; //In mili seconds
 long LastScreenLoop =0;
 
-
-float Filter(float prevSpeed, float CurrentSpeed)
+void killSwitch()
 {
-    int filter = 5000;
-
-    float FilteredVal = (prevSpeed + (CurrentSpeed * filter)) / (filter + 1);
-
-    return(FilteredVal);
+    killsw = 1;
 }
 
+void LCDscreen()
+{
+    if((millis()-LastScreenLoop) >= ScreenRefreshTime)
+    {
+        lcd.clear();
+        lcd.print("SL:"+(String)MD.CurSpeedL + " RPM");
+        
+        lcd.setCursor(0,1 );
+        lcd.print("SR:"+(String)MD.CurSpeedR + " RPM");
+
+        lcd.setCursor(9,0);
+        lcd.print("S:"+(String)userSetVal);
+        
+        LastScreenLoop = millis();
+    }
+}
 
 void Motor(int SetSpeedL, int SetSpeedR, int DirectionL, int DirectionR)
 {
     SetpointL = SetSpeedL;
     SetpointR = SetSpeedR;
+
+    LeftPID.Compute();
+    RightPID.Compute();
 
     //Left Motor
     if(DirectionL == CC)
@@ -91,9 +113,8 @@ void Motor(int SetSpeedL, int SetSpeedR, int DirectionL, int DirectionR)
 
 }
 
-void EncoderD()
+void EncoderData()
 {
-    //userSetVal = userSetSpeed.read();
 
     EncData.NewLPos = myEncLeft.read();
     EncData.NewRPos = myEncRight.read();
@@ -103,8 +124,6 @@ void EncoderD()
     
     EncData.OldLPos = EncData.NewLPos;
     EncData.OldRPos = EncData.NewRPos; 
-    //myEncLeft.write(0); //reset encoder ticks
-    //myEncRight.write(0);
         
     if(EncData.NewLPos ==0)
     {
@@ -126,8 +145,6 @@ void EncoderD()
 
     InputL = MD.CurSpeedL; //PID Input speed
     InputR = MD.CurSpeedR; //PID Input speed 
-
-    //distance = sonar.ping_cm();
 
 }
 
@@ -158,7 +175,6 @@ String Coms() //For Yashwin
             {
               serData += c;
             }
-            //Serial.println(c);
           }
         
       }
@@ -174,8 +190,7 @@ int Move(int SetSpeed, int setSteps)
 {
 
     if(abs(myEncRight.read()) >= setSteps)
-    {
-        
+    {  
         MD.SetSpeedL = 0;
         MD.SetSpeedR = 0;
         
@@ -213,10 +228,47 @@ void Mode(int mode)
         default:
             break;
     }
-
     //Print Data to screen 
+}
 
+int RotateToCup(String msg)
+{
+    String FoundFlag;
+    String xOffset;
 
+    FoundFlag = msg.substring(0, msg.indexOf(","));
+    xOffset = msg.substring(msg.indexOf(",")+1);
+
+    if(FoundFlag.toInt() == 0)
+    {
+        initial = 1; //reset 
+        pos = 0; //reset
+
+        return(0);
+    }
+    else
+    {
+        int offsetval;
+        
+        offsetval = xOffset.toInt();
+        if(offsetval <0)
+        {
+            MD.DirectionL = CCW;
+            MD.DirectionR = CC;
+        }
+        else if(offsetval == 0)
+        {
+            pos++;
+        }
+        else
+        {
+            MD.DirectionL = CC;
+            MD.DirectionR = CCW;
+        }
+
+        return(offsetval);
+    }
+    
 }
 
 int nbDelay(long imillis, int setDelay)
@@ -241,12 +293,11 @@ void serialData()
     Serial.print((String)SetpointL + " ");
     Serial.println((String)SetpointL + " ");
 }
-String msg1;
 
 void setup()
 {
-    Serial.begin(9600);
-    Serial1.begin(9600);
+    Serial.begin(9600); //Debug serial port
+    Serial1.begin(9600); //Pi serial port
     
     lcd.init();
     lcd.backlight();
@@ -265,23 +316,19 @@ void setup()
     pinMode(PWMA,OUTPUT);
     pinMode(PWMB,OUTPUT);
 
+    pinMode(KILL_SWITCH, INPUT); 
+    
+    attachInterrupt(KILL_SWITCH, killSwitch, RISING);
+
     analogWriteFrequency(PWMA, 58593.75);
     analogWriteFrequency(PWMB, 58593.75);
 
-    motorTimer.begin(EncoderD, MotorSpeedLoopTime);
-    //pingTimer.begin(distData, 35000);
+    motorTimer.begin(EncoderData, MotorSpeedLoopTime);
 }
 
-long lastmillis =0;
-int flagSet = 0;
-long imil = 0;
-int killsw =0;
-int pos = 0;
+
 void loop()
 {   
-    LeftPID.Compute();
-    RightPID.Compute();
-
     if((millis() - lastmillis) >= 30)
     {
         //serialData();
@@ -294,10 +341,9 @@ void loop()
 
     }
 
-
     switch (pos)
     {
-        case 0:
+        case 0: //Search for cup
             MD.DirectionL = CC;
             MD.DirectionR = CCW;
     
@@ -305,29 +351,57 @@ void loop()
             
             if(flagSet == 1)
             {
-                //Serial.println(flagSet);
-                MD.SetSpeedL =0;
-                MD.SetSpeedR =0;
-                
                 pos++;
                 imil = millis();
             }
             break;
         
-        case 1:
-            Serial.println("com sent: 1");
-                MD.SetSpeedL =0;
-                MD.SetSpeedR =0;
-            ConstantSpeed();
-            
+        case 1: //Get prediction from pi 
+
+            Serial.println("Com Sent: 1");
             msg1 = Coms();
             pos++;
             break;
-        case 2:
-                pos =0;
             
+        case 2: //Rotate towards cup
+            
+            if(initial == 0) //will only do this once
+            {
+                x_offset = RotateToCup(msg1);
+                initial = 1;
+            }
+            else
+            {
+                flagSet = Move(16, x_offset);
+                
+                if(flagSet == 1)
+                {
+                    pos++;
+                }
+            }
             break;
-//        case 2:
+
+        case 3: //Move towards cup
+            
+            //Set motor directions
+            MD.DirectionL = CC; 
+            MD.DirectionR = CC;
+
+            if(killsw != 1) //Keep moving untill the killSwitch is pressed
+            {
+                MD.SetSpeedL = 16;
+                MD.SetSpeedR = 16;
+            }
+            else
+            {
+                MD.SetSpeedL = 0;
+                MD.SetSpeedR = 0;
+
+                pos++;
+            }
+            break;
+
+//      case 2:
 //        
 //            if(flagSet == 1 && reqSent == 0)
 //            {
@@ -342,8 +416,6 @@ void loop()
 //                pos = 0;
 //            }
 //            break;
-            
-
 //            
 //        case 4:
 //            MD.DirectionL = CC;
@@ -380,28 +452,7 @@ void loop()
             break;
     }
 
-
-    
-    if((millis()-LastScreenLoop) >= ScreenRefreshTime)
-    {
-        lcd.clear();
-        lcd.print("SL:"+(String)MD.CurSpeedL + " RPM");
-        
-        lcd.setCursor(0,1 );
-        lcd.print("SR:"+(String)MD.CurSpeedR + " RPM");
-
-        lcd.setCursor(9,0);
-        lcd.print("S:"+(String)userSetVal);
-
-        lcd.setCursor(9,1);
-        lcd.print("D:"+(String)distance);
-        
-        LastScreenLoop = millis();
-    }
-
+    LCDscreen();
     ConstantSpeed();
-    //IR(); //Get IR sensor reading
-    
-    //Mode(1);
 }
 
