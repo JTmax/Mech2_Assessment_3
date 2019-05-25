@@ -5,6 +5,8 @@
 
 LiquidCrystal_I2C lcd(0x27,20,4);
 
+//GLOBAL VARIABLES//
+
 int testing = 1;
 int distance = 0;
 int reqSent = 0;
@@ -16,6 +18,10 @@ long imil = 0;
 String msg1;
 int x_offset = 0;
 int killsw =0;
+int mapping = 0;
+
+
+/////////////////////////
 
 IntervalTimer motorTimer;
 
@@ -215,7 +221,7 @@ int RotateToCup(String msg)
     FoundFlag = msg.substring(0, msg.indexOf(","));
     xOffset = msg.substring(msg.indexOf(",")+1);
     
-    Serial.println("\nFlag:" + FoundFlag);
+    Serial.println("Flag:" + FoundFlag);
     
     if(FoundFlag.toInt() == 0)
     {
@@ -305,14 +311,12 @@ void setup()
     motorTimer.begin(EncoderData, MotorSpeedLoopTime);
 }
 
-int mapping = 0;
 void loop()
 {   
-    if((millis() - lastmillis) >= 30)
+    if((millis() - lastmillis) >= 30) //Serial Print loop 30 ms
     {
         //serialData();
         lastmillis = millis();
-
     }
 
     switch (pos)
@@ -322,6 +326,7 @@ void loop()
             Serial.println("In case: 0 (Searching for cup)");
             
             initial=0;
+            x_offset = 0;
             
             MD.DirectionL = CC;
             MD.DirectionR = CCW;
@@ -338,6 +343,7 @@ void loop()
         case 1: //Get prediction from pi 
             
             Serial.println("In case: 1 (Getting Prediction from Pi)" );
+            
             msg1 = Coms(); //Coms is a blocking functions
             pos++;
             break;
@@ -346,7 +352,7 @@ void loop()
             
             if(initial == 0) //will only do this once
             {
-                Serial.println("In case: 2/1 ");
+                Serial.println("In case: 2/1 (Parsing returned serial data)");
                 
                 x_offset = RotateToCup(msg1);
                 
@@ -395,16 +401,34 @@ void loop()
             
          case 4: //Milk
             Serial.println("In case: 4");
+
+            //ADD CODE
+
+
+            /////////
+           
             pos++;
             break;
 
          case 5: //Dunker
             Serial.println("In case: 5");
+
+            //ADD CODE
+
+
+            /////////
+            
             pos++;
             break;
 
-         case 6: // Hope
+         case 6: //Hope
             Serial.println("In case: 6");
+
+            //ADD CODE
+
+
+            /////////
+            
             pos++;
             break;
          
@@ -418,58 +442,18 @@ void loop()
             if(flagSet == 1)
             {
                 pos++;
-                imil = millis();
             }
             
             break;
-
-//      case 2:
-//        
-//            if(flagSet == 1 && reqSent == 0)
-//            {
-//                MD.DirectionL = CC;
-//                MD.DirectionR = CC;
-//                MD.SetSpeedL = 16;
-//                MD.SetSpeedR = 16;
-//                //pos = 0;
-//            }
-//            else if(flagSet == 0 && reqSent == 0)
-//            {
-//                pos = 0;
-//            }
-//            break;
-//            
-//        case 4:
-//            MD.DirectionL = CC;
-//            MD.DirectionR = CCW;
-//            flagSet = Move(25,1000);
-//            if(flagSet == 1)
-//            {
-//                pos++;
-//                imil = millis();
-//            }
-//            break;
-//        
-//        case 5:
+    
+//        case 8:
 //            flagSet = nbDelay(imil,1000);
 //            if(flagSet == 1)
 //            {
 //                pos++;
 //            }
 //            break;
-//
-//        case 6:
-//            MD.DirectionL = CC;
-//            MD.DirectionR = CC;
-//            flagSet = Move(25,5000);
-//            if(flagSet == 1)
-//            {
-//                pos++;
-//                imil = millis();
-//            }
-//            break;
-//            
-        
+
         default:
             break;
     }
