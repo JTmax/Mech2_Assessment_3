@@ -28,4 +28,9 @@
 
 #define KILL_SWITCH 32
 
+//Hope pins
+#define DIR 
+#define STP
+#define DC_EN 
+
 #endif

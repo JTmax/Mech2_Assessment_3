@@ -19,7 +19,7 @@ String msg1;
 int x_offset = 0;
 int killsw =0;
 int mapping = 0;
-
+int done =0;
 
 /////////////////////////
 
@@ -301,6 +301,11 @@ void setup()
     pinMode(PWMA,OUTPUT);
     pinMode(PWMB,OUTPUT);
 
+    //Hope
+    pinMode(DIR, OUTPUT);
+    pinMode(STP, OUTPUT);
+    pinMode(DC_EN, OUTPUT);
+
     pinMode(KILL_SWITCH, INPUT); 
     
     attachInterrupt(KILL_SWITCH, killSwitch, FALLING);
@@ -362,7 +367,7 @@ void loop()
             {
                 Serial.println("In case: 2/2 (Rotating towards cup)" );
 
-                mapping = x_offset * 1.7; //Map px displacment to excoder value
+                mapping = 15 * x_offset * 0.233; //Map px displacment to excoder value
                 
                 flagSet = Move(16, mapping);
                 
@@ -403,7 +408,15 @@ void loop()
             Serial.println("In case: 4");
 
             //ADD CODE
+            Done = 1;
 
+            while(Done == 1)
+            {
+
+
+                
+                Done = 0;
+            }
 
             /////////
            
@@ -414,7 +427,15 @@ void loop()
             Serial.println("In case: 5");
 
             //ADD CODE
+            Done = 1;
+            
+            while(Done == 1)
+            {
 
+
+
+                Done = 0;
+            }
 
             /////////
             
@@ -425,8 +446,31 @@ void loop()
             Serial.println("In case: 6");
 
             //ADD CODE
+            
+            digitalWrite(DIR, LOW);
+            
+            for (x = 1; x < 4096; x++)
+            {
+            digitalWrite(STP, HIGH);
+            delayMicroseconds(500);
+            digitalWrite(STP, LOW);
+            delayMicroseconds(500);
+            }
 
+            delay(2000);
+            analogWrite(DC_EN, 75); //Turm on dc motor
+            delay(10000);
+            analogWrite(DC_EN, 0); //Turn off dc motor
 
+            digitalWrite(DIR, HIGH); //Change directions
+
+            for (y = 1; y < 4096; y++)
+            {
+            digitalWrite(STP, HIGH);
+            delayMicroseconds(500);
+            digitalWrite(STP, LOW);
+            delayMicroseconds(500);
+                
             /////////
             
             pos++;
