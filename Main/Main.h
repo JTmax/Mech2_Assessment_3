@@ -21,16 +21,17 @@
 #define ENCRA 21
 #define ENCRB 20
 
-//IR sensor Pins
-#define TRIGGER_PIN  29  // Arduino pin tied to trigger pin on the ultrasonic sensor.
-#define ECHO_PIN     30  // Arduino pin tied to echo pin on the ultrasonic sensor.
-#define MAX_DISTANCE 100
-
 #define KILL_SWITCH 32
 
 //Hope pins
-#define DIR 
-#define STP
-#define DC_EN 
+#define S_DIR 31
+#define S_STP 30
+#define S_DC_EN 29
+#define S_EN 28
+
+//Dunker
+#define D_DIR 27
+#define D_STP 26
+#define D_EN 25
 
 #endif

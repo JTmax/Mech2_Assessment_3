@@ -19,7 +19,7 @@ String msg1;
 int x_offset = 0;
 int killsw =0;
 int mapping = 0;
-int done =0;
+int Done =0;
 
 /////////////////////////
 
@@ -160,8 +160,8 @@ String Coms() //For Yashwin
     //Parse serial data from bluetooth module 
       String serData;
 
-      //analogWrite(PWMA, 0);
-      //analogWrite(PWMB, 0);
+//      analogWrite(PWMA, 0);
+//      analogWrite(PWMB, 0);
       
       Serial1.println("1");
       Serial.println("Com Sent: 1");
@@ -302,9 +302,14 @@ void setup()
     pinMode(PWMB,OUTPUT);
 
     //Hope
-    pinMode(DIR, OUTPUT);
-    pinMode(STP, OUTPUT);
-    pinMode(DC_EN, OUTPUT);
+    pinMode(S_DIR, OUTPUT);
+    pinMode(S_STP, OUTPUT);
+    pinMode(S_DC_EN, OUTPUT);
+
+    //Dunker
+    pinMode(D_STP, OUTPUT);
+    pinMode(D_DIR, OUTPUT);
+    pinMode(D_EN, OUTPUT);
 
     pinMode(KILL_SWITCH, INPUT); 
     
@@ -321,6 +326,7 @@ void loop()
     if((millis() - lastmillis) >= 30) //Serial Print loop 30 ms
     {
         //serialData();
+        //Serial.println((String)killsw);
         lastmillis = millis();
     }
 
@@ -328,7 +334,7 @@ void loop()
     {
         case 0: //Search for cup
             
-            Serial.println("In case: 0 (Searching for cup)");
+            //Serial.println("In case: 0 (Searching for cup)");
             
             initial=0;
             x_offset = 0;
@@ -337,18 +343,28 @@ void loop()
             MD.DirectionR = CCW;
     
             flagSet = Move(35,340);
-            
+                        
             if(flagSet == 1)
             {
                 pos++;
                 imil = millis();
             }
+
+            ConstantSpeed();
             break;
         
         case 1: //Get prediction from pi 
             
-            Serial.println("In case: 1 (Getting Prediction from Pi)" );
+            //Serial.println("In case: 1 (Getting Prediction from Pi)" );
+
+            MD.SetSpeedL = 0;
+            MD.SetSpeedR = 0;
             
+            while(MD.CurSpeedL != 0)
+            {
+              ConstantSpeed();
+            }
+                        
             msg1 = Coms(); //Coms is a blocking functions
             pos++;
             break;
@@ -357,7 +373,7 @@ void loop()
             
             if(initial == 0) //will only do this once
             {
-                Serial.println("In case: 2/1 (Parsing returned serial data)");
+                //Serial.println("In case: 2/1 (Parsing returned serial data)");
                 
                 x_offset = RotateToCup(msg1);
                 
@@ -365,11 +381,12 @@ void loop()
             }
             else
             {
-                Serial.println("In case: 2/2 (Rotating towards cup)" );
-
-                mapping = 15 * x_offset * 0.233; //Map px displacment to excoder value
+                //Serial.println("In case: 2/2 (Rotating towards cup)" );
+                ConstantSpeed();
                 
-                flagSet = Move(16, mapping);
+                mapping = x_offset * 0.633; //Map px displacment to excoder value
+                
+                flagSet = Move(30, mapping);
                 
                 if(flagSet == 1)
                 {
@@ -380,23 +397,30 @@ void loop()
 
         case 3: //Move towards cup
 
-            Serial.println("In case: 3 (Driving towards cup)");
+            //Serial.println("In case: 3 (Driving towards cup)");
             
             //Set motor directions
             MD.DirectionL = CCW; 
             MD.DirectionR = CCW;
 
-            if(killsw != 1) //Keep moving untill the killSwitch is pressed
+            if(killsw == 0) //Keep moving untill the killSwitch is pressed
             {
-                MD.SetSpeedL = 16;
-                MD.SetSpeedR = 16;
+                MD.SetSpeedL = 30;
+                MD.SetSpeedR = 30;
+
+                ConstantSpeed();
             }
             else
             {
-                Serial.println("In case: 3 (Docked with cup)");
+                //Serial.println("In case: 3 (Docked with cup)");
                 
                 MD.SetSpeedL = 0;
                 MD.SetSpeedR = 0;
+                
+                while(MD.CurSpeedL != 0)
+                {
+                  ConstantSpeed();
+                }
 
                 pos++;
             }
@@ -405,7 +429,7 @@ void loop()
          //BLOCKING FUNCTIONS//
             
          case 4: //Milk
-            Serial.println("In case: 4");
+            //Serial.println("In case: 4");
 
             //ADD CODE
             Done = 1;
@@ -424,17 +448,34 @@ void loop()
             break;
 
          case 5: //Dunker
-            Serial.println("In case: 5");
+            //Serial.println("In case: 5");
+            int state;
+            digitalWrite(D_STP, LOW);
+            digitalWrite(D_DIR, LOW);
+            digitalWrite(D_EN, HIGH);
 
             //ADD CODE
-            Done = 1;
-            
-            while(Done == 1)
+            for(int x = 1; x<30; x++)  //Loop the forward stepping enough times for motion to be visible
             {
+                //Read direction pin state and change it
+                state = digitalRead(D_DIR);
 
-
-
-                Done = 0;
+                if(state == HIGH)
+                {
+                    digitalWrite(D_DIR, LOW);
+                }
+                else if(state == LOW)
+                {
+                    digitalWrite(D_DIR,HIGH);
+                }
+ 
+                for(int y= 1; y<2000; y++)
+                {
+                    digitalWrite(D_STP,HIGH); //Trigger one step
+                    delay(1);
+                    digitalWrite(D_STP,LOW); //Pull step pin low so it can be triggered again
+                    delay(1);
+                }
             }
 
             /////////
@@ -443,51 +484,57 @@ void loop()
             break;
 
          case 6: //Hope
-            Serial.println("In case: 6");
+            //Serial.println("In case: 6");
+
+            digitalWrite(S_STP, LOW);
+            digitalWrite(S_DIR, LOW);
+            digitalWrite(S_EN, HIGH);
+            digitalWrite(S_DC_EN, LOW);
 
             //ADD CODE
+            digitalWrite(S_DIR, LOW);
             
-            digitalWrite(DIR, LOW);
-            
-            for (x = 1; x < 4096; x++)
+            for (int x = 1; x < 4096; x++)
             {
-            digitalWrite(STP, HIGH);
+            digitalWrite(S_STP, HIGH);
             delayMicroseconds(500);
-            digitalWrite(STP, LOW);
+            digitalWrite(S_STP, LOW);
             delayMicroseconds(500);
             }
 
             delay(2000);
-            analogWrite(DC_EN, 75); //Turm on dc motor
+            analogWrite(S_DC_EN, 75); //Turm on dc motor
+
             delay(10000);
-            analogWrite(DC_EN, 0); //Turn off dc motor
+            analogWrite(S_DC_EN, 0); //Turn off dc motor
 
-            digitalWrite(DIR, HIGH); //Change directions
+            digitalWrite(S_DIR, HIGH); //Change directions
 
-            for (y = 1; y < 4096; y++)
+            for (int y = 1; y < 4096; y++)
             {
-            digitalWrite(STP, HIGH);
+            digitalWrite(S_STP, HIGH);
             delayMicroseconds(500);
-            digitalWrite(STP, LOW);
+            digitalWrite(S_STP, LOW);
             delayMicroseconds(500);
-                
+            }
             /////////
             
             pos++;
+
             break;
          
          case 7: //Move back play beep
             
-            MD.DirectionL = CC;
-            MD.DirectionR = CC;
-    
-            flagSet = Move(35,500);
-            
-            if(flagSet == 1)
-            {
-                pos++;
-            }
-            
+//            MD.DirectionL = CC;
+//            MD.DirectionR = CC;
+//    
+//            flagSet = Move(35,500);
+//            
+//            if(flagSet == 1)
+//            {
+//                pos++;
+//            }
+//            
             break;
     
 //        case 8:
@@ -503,6 +550,6 @@ void loop()
     }
 
     LCDscreen();
-    ConstantSpeed();
+    //ConstantSpeed();
 }
 
