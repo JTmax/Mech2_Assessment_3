@@ -11,7 +11,7 @@ int testing = 1;
 int distance = 0;
 int reqSent = 0;
 int initial = 0;
-int pos = 0;
+int pos = 6;
 long lastmillis =0;
 int flagSet = 0;
 long imil = 0;
@@ -34,7 +34,7 @@ double SetpointL, InputL, OutputL;
 double KpL=1.22, KiL=1.4, KdL=0;
 
 double SetpointR, InputR, OutputR;
-double KpR =1.26, KiR=1.6, KdR=0;
+double KpR =1.24, KiR=1.6, KdR=0;
 
 PID LeftPID(&InputL, &OutputL, &SetpointL, KpL, KiL, KdL, DIRECT);
 PID RightPID(&InputR, &OutputR, &SetpointR, KpR, KiR, KdR, DIRECT);
@@ -503,7 +503,7 @@ void loop()
             }
 
             delay(2000);
-            analogWrite(S_DC_EN, 75); //Turm on dc motor
+            analogWrite(S_DC_EN, 50); //Turm on dc motor
 
             delay(10000);
             analogWrite(S_DC_EN, 0); //Turn off dc motor
@@ -525,16 +525,27 @@ void loop()
          
          case 7: //Move back play beep
             
-//            MD.DirectionL = CC;
-//            MD.DirectionR = CC;
-//    
-//            flagSet = Move(35,500);
-//            
-//            if(flagSet == 1)
-//            {
-//                pos++;
-//            }
-//            
+            MD.DirectionL = CC;
+            MD.DirectionR = CC;
+    
+            flagSet = Move(35,500);
+            
+            if(flagSet == 1)
+            {
+
+                MD.SetSpeedL = 0;
+                MD.SetSpeedR = 0;
+                
+                while(MD.CurSpeedL != 0)
+                {
+                  ConstantSpeed();
+                }
+
+                pos++;
+
+                
+            }
+            
             break;
     
 //        case 8:
